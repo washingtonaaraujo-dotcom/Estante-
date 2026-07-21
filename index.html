@@ -116,6 +116,12 @@ main{max-width:760px;margin:0 auto;padding:8px 20px}
   bottom:98px;background:#fff;
   display:flex;align-items:center;justify-content:center;
 }
+.add.sync{
+  bottom:172px;background:#8CC0B4;
+  display:flex;align-items:center;justify-content:center;
+}
+.add.sync.girando svg{animation:girar 1s linear infinite}
+@keyframes girar{to{transform:rotate(360deg)}}
 /* ---------- MODAL ---------- */
 .veu{
   position:fixed;inset:0;background:rgba(8,12,10,.72);
@@ -193,6 +199,9 @@ input[type=file]{display:none}
   </div>
 </main>
 
+<button class="add sync" id="btnSync" aria-label="Sincronizar com o Drive" title="Sincronizar entre aparelhos">
+  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#16211C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-9 9c-2.5 0-4.8-1-6.4-2.7"/><path d="M3 12a9 9 0 0 1 9-9c2.5 0 4.8 1 6.4 2.7"/><polyline points="18.5 3.5 18.5 8 14 8"/><polyline points="5.5 20.5 5.5 16 10 16"/></svg>
+</button>
 <button class="add drive" id="btnDrive" aria-label="Importar do Google Drive" title="Importar do Google Drive">
   <svg viewBox="0 0 87.3 78" width="26" height="26" aria-hidden="true"><path fill="#0066da" d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z"/><path fill="#00ac47" d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z"/><path fill="#ea4335" d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z"/><path fill="#00832d" d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z"/><path fill="#2684fc" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z"/><path fill="#ffba00" d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z"/></svg>
 </button>
@@ -254,7 +263,7 @@ input[type=file]{display:none}
 ==================================================================== */
 const GOOGLE_CLIENT_ID = '823207144699-ev9jbopvcsa97fg66fbl2p48hu1imu23.apps.googleusercontent.com';
 const GOOGLE_API_KEY   = 'AIzaSyAOm5X9XdE7j0Ic09JMQlK4qos-7jNSuEw';
-const GOOGLE_SCOPE     = 'https://www.googleapis.com/auth/drive.readonly';
+const GOOGLE_SCOPE     = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 </script>
 <script>
 /* ================= pdf.js ================= */
@@ -596,6 +605,124 @@ async function pickerCallback(data){
   if(ok)avisar(ok>1?`${ok} livros importados do Drive`:'Livro importado do Drive');
 }
 
+/* ================= SINCRONIZAÇÃO (pasta no Drive) ================= */
+const PASTA_NOME='Minha Estante';
+
+function pedirToken(interativo){
+  return new Promise(async(res,rej)=>{
+    await prepararGoogle();
+    tokenClient.callback=r=>{
+      if(r.error)return rej(r);
+      tokenAcesso=r.access_token;res(r.access_token);
+    };
+    tokenClient.error_callback=e=>rej(e);
+    try{
+      tokenClient.requestAccessToken({prompt:interativo?(tokenAcesso?'':'consent'):''});
+    }catch(e){rej(e)}
+  });
+}
+
+async function acharOuCriarPasta(token){
+  const q=encodeURIComponent(`name='${PASTA_NOME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  let r=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&spaces=drive`,{headers:{Authorization:'Bearer '+token}});
+  let d=await r.json();
+  if(d.files&&d.files.length)return d.files[0].id;
+  r=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({name:PASTA_NOME,mimeType:'application/vnd.google-apps.folder'})
+  });
+  d=await r.json();
+  return d.id;
+}
+
+async function subirParaDrive(token,pastaId,livro){
+  const ext=livro.tipo==='pdf'?'.pdf':'.epub';
+  const tipoMime=livro.tipo==='pdf'?'application/pdf':'application/epub+zip';
+  const nome=livro.titulo.replace(/[\\/:*?"<>|]/g,'')+ext;
+  const meta={name:nome,parents:[pastaId],appProperties:{estante:'1'}};
+  const boundary='estante'+Date.now()+Math.random().toString(36).slice(2);
+  const delim=`\r\n--${boundary}\r\n`;
+  const fim=`\r\n--${boundary}--`;
+  const cabMeta=delim+'Content-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta);
+  const cabMedia=delim+'Content-Type: '+tipoMime+'\r\n\r\n';
+  const corpo=new Blob([cabMeta,cabMedia,livro.blob,fim]);
+  const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'multipart/related; boundary='+boundary},
+    body:corpo
+  });
+  if(!r.ok)throw new Error('upload');
+  const d=await r.json();
+  return d.id;
+}
+
+async function listarDrive(token,pastaId){
+  const q=encodeURIComponent(`'${pastaId}' in parents and trashed=false`);
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,size,mimeType)&pageSize=1000`,{headers:{Authorization:'Bearer '+token}});
+  const d=await r.json();
+  return d.files||[];
+}
+
+async function sincronizar(interativo){
+  if(!driveConfigurado()){
+    if(interativo)avisar('Falta configurar o Drive — veja COMO-CONECTAR-DRIVE');
+    return;
+  }
+  const btn=$('#btnSync');
+  btn.classList.add('girando');
+  try{
+    if(interativo)avisar('Sincronizando…');
+    const token=await pedirToken(interativo);
+    const pastaId=await acharOuCriarPasta(token);
+
+    // 1) envia pro Drive os livros locais que ainda não subiram
+    const locais=await listar();
+    for(const l of locais){
+      if(!l.driveId){
+        if(interativo)avisar(`Enviando "${l.titulo}"…`);
+        try{
+          const id=await subirParaDrive(token,pastaId,l);
+          if(id){l.driveId=id;await salvar(l)}
+        }catch(e){/* segue os outros */}
+      }
+    }
+
+    // 2) baixa os que estão no Drive mas não neste aparelho
+    const jaTenho=new Set((await listar()).map(x=>x.driveId).filter(Boolean));
+    const remotos=await listarDrive(token,pastaId);
+    let baixados=0;
+    for(const f of remotos){
+      if(jaTenho.has(f.id))continue;
+      if(interativo)avisar(`Baixando "${f.name}"…`);
+      try{
+        const rr=await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,{headers:{Authorization:'Bearer '+token}});
+        if(!rr.ok)continue;
+        const blob=await rr.blob();
+        const ehPdf=/pdf/i.test(f.mimeType)||/\.pdf$/i.test(f.name);
+        const livro={
+          titulo:tituloDoArquivo(f.name),autor:'',
+          tipo:ehPdf?'pdf':'epub',tamanho:blob.size,
+          data:Date.now(),blob,capa:null,capaTentada:false,driveId:f.id
+        };
+        livro.capa=await gerarCapa(livro);
+        livro.capaTentada=true;
+        await salvar(livro);
+        baixados++;
+      }catch(e){/* segue */}
+    }
+
+    await render();
+    if(interativo)avisar('Estante sincronizada'+(baixados?` · ${baixados} novo(s)`:''));
+  }catch(e){
+    if(interativo)avisar('Não consegui sincronizar — toque de novo pra autorizar');
+  }finally{
+    btn.classList.remove('girando');
+  }
+}
+
+$('#btnSync').onclick=()=>sincronizar(true);
+
 /* ================= busca ================= */
 $('#busca').oninput=()=>render();
 
@@ -606,6 +733,8 @@ $('#busca').oninput=()=>render();
   gerarCapasFaltantes(); /* gera capa dos livros antigos em segundo plano */
   if(navigator.storage&&navigator.storage.persist){navigator.storage.persist()}
   if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+  /* tenta sincronizar sozinho ao abrir (silencioso; se precisar de login, ignora) */
+  setTimeout(()=>sincronizar(false),1500);
 })();
 </script>
 </body>
