@@ -234,7 +234,7 @@ input[type=file]{display:none}
 }
 .lb:active{opacity:.7}
 .lb.largo{flex:1}
-.leitorArea{flex:1;overflow:hidden}
+.leitorArea{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .leitorRodape{
   display:flex;align-items:center;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));
   background:var(--fundo-2);color:var(--papel);flex-shrink:0;
@@ -589,11 +589,18 @@ async function abrirLeitor(l){
   try{
     const buf=await l.blob.arrayBuffer();
     ebook=ePub(buf);
-    rendition=ebook.renderTo('leitorArea',{width:'100%',height:'100%',flow:'paginated',spread:'none'});
+    rendition=ebook.renderTo('leitorArea',{
+      flow:'scrolled-doc',
+      manager:'continuous',
+      width:'100%',
+      height:'100%'
+    });
     fonteLeitor=l.fonteLeitor||100;
     aplicarTemaLeitor();
     await rendition.display(l.cfi||undefined);
     await ebook.ready;
+    // reforça o tamanho depois de montar (evita tela em branco)
+    setTimeout(()=>{try{rendition.resize()}catch(e){}},300);
     try{await ebook.locations.generate(1200)}catch(e){}
     rendition.on('relocated',async loc=>{
       leitorLivro.cfi=loc.start.cfi;
