@@ -1,9 +1,9 @@
-const CACHE = 'estante-v7';
+const CACHE = 'estante-v8';
 const ESTATICOS = [
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.93/epub.min.js'
+  'https://cdn.jsdelivr.net/npm/epubjs@0.3.88/dist/epub.min.js'
 ];
 const LOCAIS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 

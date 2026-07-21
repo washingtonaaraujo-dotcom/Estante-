@@ -358,7 +358,7 @@ input[type=file]{display:none}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.93/epub.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.88/dist/epub.min.js"></script>
 <script src="https://apis.google.com/js/api.js" onload="window._gapiPronto=true"></script>
 <script src="https://accounts.google.com/gsi/client" onload="window._gisPronto=true"></script>
 <script>
@@ -575,7 +575,12 @@ async function mostrarEspaco(){
 let ebook=null, rendition=null, leitorLivro=null, fonteLeitor=100;
 async function abrirLeitor(l){
   if(l.tipo!=='epub'){return}
-  if(!window.ePub){avisar('Leitor ainda carregando, tente de novo em 1s');return}
+  // espera a biblioteca carregar (até ~4s)
+  if(!window.ePub){
+    avisar('Preparando o leitor…');
+    for(let i=0;i<40 && !window.ePub;i++){await new Promise(r=>setTimeout(r,100))}
+  }
+  if(!window.ePub){avisar('Leitor não carregou — verifique a conexão e tente de novo');return}
   leitorLivro=l;
   $('#veuLivro').classList.remove('aberto');
   $('#leitorTitulo').textContent=l.titulo;
