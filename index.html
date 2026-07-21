@@ -116,6 +116,12 @@ main{max-width:760px;margin:0 auto;padding:8px 20px}
   bottom:98px;background:#fff;
   display:flex;align-items:center;justify-content:center;
 }
+.add.sync{
+  bottom:172px;background:#8CC0B4;
+  display:flex;align-items:center;justify-content:center;
+}
+.add.sync.girando svg{animation:girar 1s linear infinite}
+@keyframes girar{to{transform:rotate(360deg)}}
 /* ---------- MODAL ---------- */
 .veu{
   position:fixed;inset:0;background:rgba(8,12,10,.72);
@@ -168,18 +174,99 @@ main{max-width:760px;margin:0 auto;padding:8px 20px}
 .aviso.mostra{opacity:1}
 input[type=file]{display:none}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---------- cabeçalho ---------- */
+.cabecalho{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.btnBackup{
+  flex-shrink:0;margin-top:6px;
+  background:transparent;border:1px solid #2C3B34;color:var(--papel-fraco);
+  border-radius:10px;padding:8px 12px;font-size:.8rem;cursor:pointer;
+}
+.btnBackup:active{background:#2C3B34}
+/* ---------- controles (ordenar + prateleiras) ---------- */
+.controles{
+  max-width:760px;margin:12px auto 0;padding:0 20px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+}
+.chips{display:flex;gap:8px;flex-wrap:wrap;flex:1;min-width:0}
+.chip{
+  background:var(--fundo-2);border:1px solid #2C3B34;color:var(--papel-fraco);
+  border-radius:999px;padding:6px 13px;font-size:.8rem;cursor:pointer;white-space:nowrap;
+}
+.chip.ativo{background:var(--latao);color:#221A0C;border-color:var(--latao);font-weight:600}
+#ordenar{
+  background:var(--fundo-2);border:1px solid #2C3B34;color:var(--papel);
+  border-radius:10px;padding:7px 10px;font-size:.82rem;cursor:pointer;flex-shrink:0;
+}
+/* ---------- badges de status na capa ---------- */
+.capaLivro,.lombada{position:relative}
+.badge{
+  position:absolute;top:5px;left:5px;z-index:2;
+  font-size:.55rem;font-weight:700;letter-spacing:.04em;
+  padding:2px 6px;border-radius:6px;color:#fff;text-transform:uppercase;
+  box-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+.badge.lendo{background:#3E6B62}
+.badge.lido{background:#4B7A3B}
+.badge.quero{background:#8A6D2F}
+.barraProg{
+  position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(0,0,0,.35);z-index:2;
+}
+.barraProg i{display:block;height:100%;background:var(--latao)}
+/* ---------- status no painel ---------- */
+.statusLinha{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.stBtn{
+  background:var(--fundo);border:1px solid #2C3B34;color:var(--papel-fraco);
+  border-radius:8px;padding:6px 10px;font-size:.78rem;cursor:pointer;
+}
+.stBtn.ativo{background:var(--latao);color:#221A0C;border-color:var(--latao);font-weight:600}
+/* ---------- LEITOR EPUB ---------- */
+.leitor{position:fixed;inset:0;z-index:60;background:var(--papel);display:flex;flex-direction:column}
+.leitor.escuro{background:#14100C}
+.leitorBarra{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--fundo-2);color:var(--papel);flex-shrink:0;
+}
+.leitorTitulo{flex:1;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leitorFerramentas{display:flex;gap:6px}
+.lb{
+  background:#2C3B34;color:var(--papel);border:none;border-radius:8px;
+  padding:8px 12px;font-size:.9rem;cursor:pointer;font-weight:600;
+}
+.lb:active{opacity:.7}
+.lb.largo{flex:1}
+.leitorArea{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.leitorRodape{
+  display:flex;align-items:center;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:var(--fundo-2);color:var(--papel);flex-shrink:0;
+}
+.leitorProgresso{font-size:.82rem;color:var(--papel-fraco);min-width:44px;text-align:center}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Minha <em>Estante</em></h1>
-  <p class="sub">Seus livros digitais, guardados no seu aparelho</p>
+  <div class="cabecalho">
+    <div>
+      <h1>Minha <em>Estante</em></h1>
+      <p class="sub">Seus livros digitais, guardados no seu aparelho</p>
+    </div>
+    <button class="btnBackup" id="btnBackup" title="Baixar backup de tudo">⬇ Backup</button>
+  </div>
 </header>
 
 <div class="busca">
   <input id="busca" type="search" placeholder="Buscar por título ou autor…" autocomplete="off">
   <p class="info-espaco" id="espaco"></p>
+</div>
+
+<div class="controles">
+  <div class="chips" id="chips"></div>
+  <select id="ordenar" aria-label="Ordenar">
+    <option value="recentes">Recentes</option>
+    <option value="titulo">Título A–Z</option>
+    <option value="autor">Autor A–Z</option>
+    <option value="status">Status</option>
+  </select>
 </div>
 
 <main>
@@ -193,6 +280,9 @@ input[type=file]{display:none}
   </div>
 </main>
 
+<button class="add sync" id="btnSync" aria-label="Sincronizar com o Drive" title="Sincronizar entre aparelhos">
+  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#16211C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-9 9c-2.5 0-4.8-1-6.4-2.7"/><path d="M3 12a9 9 0 0 1 9-9c2.5 0 4.8 1 6.4 2.7"/><polyline points="18.5 3.5 18.5 8 14 8"/><polyline points="5.5 20.5 5.5 16 10 16"/></svg>
+</button>
 <button class="add drive" id="btnDrive" aria-label="Importar do Google Drive" title="Importar do Google Drive">
   <svg viewBox="0 0 87.3 78" width="26" height="26" aria-hidden="true"><path fill="#0066da" d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z"/><path fill="#00ac47" d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z"/><path fill="#ea4335" d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z"/><path fill="#00832d" d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z"/><path fill="#2684fc" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z"/><path fill="#ffba00" d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z"/></svg>
 </button>
@@ -208,13 +298,14 @@ input[type=file]{display:none}
         <h2 id="pTitulo"></h2>
         <p class="autor" id="pAutor"></p>
         <p class="meta" id="pMeta"></p>
+        <div class="statusLinha" id="pStatusLinha"></div>
       </div>
     </div>
     <div class="acoes">
-      <button class="botao principal" id="btnAbrir">📖 Abrir</button>
+      <button class="botao principal" id="btnAbrir">📖 Ler</button>
       <button class="botao" id="btnBaixar">⬇️ Baixar / compartilhar</button>
-      <button class="botao" id="btnEditar">✏️ Editar título e autor</button>
-      <button class="botao apagar" id="btnApagar">🗑️ Apagar da estante</button>
+      <button class="botao" id="btnEditar">✏️ Editar</button>
+      <button class="botao" id="btnApagar" style="color:var(--perigo)">🗑️ Apagar</button>
     </div>
     <button class="fechar" data-fecha>Fechar</button>
   </div>
@@ -232,6 +323,11 @@ input[type=file]{display:none}
       <label for="eAutor">Autor</label>
       <input id="eAutor" type="text" placeholder="Opcional">
     </div>
+    <div class="campo">
+      <label for="eCategoria">Prateleira</label>
+      <input id="eCategoria" type="text" placeholder="Ex.: Técnico, Ficção, Concurso… (opcional)" list="listaCategorias">
+      <datalist id="listaCategorias"></datalist>
+    </div>
     <div class="acoes">
       <button class="botao principal" id="btnSalvar">Salvar</button>
     </div>
@@ -239,10 +335,30 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<!-- leitor de EPUB -->
+<div class="leitor" id="leitor" hidden>
+  <div class="leitorBarra">
+    <button class="lb" id="leitorFechar" aria-label="Fechar leitor">✕</button>
+    <span class="leitorTitulo" id="leitorTitulo"></span>
+    <div class="leitorFerramentas">
+      <button class="lb" id="leitorMenos" aria-label="Fonte menor">A−</button>
+      <button class="lb" id="leitorMais" aria-label="Fonte maior">A+</button>
+      <button class="lb" id="leitorTema" aria-label="Alternar tema">◐</button>
+    </div>
+  </div>
+  <div class="leitorArea" id="leitorArea"></div>
+  <div class="leitorRodape">
+    <button class="lb largo" id="leitorAnterior">‹ Anterior</button>
+    <span class="leitorProgresso" id="leitorProgresso">0%</span>
+    <button class="lb largo" id="leitorProximo">Próximo ›</button>
+  </div>
+</div>
+
 <div class="aviso" id="aviso"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.88/dist/epub.min.js"></script>
 <script src="https://apis.google.com/js/api.js" onload="window._gapiPronto=true"></script>
 <script src="https://accounts.google.com/gsi/client" onload="window._gisPronto=true"></script>
 <script>
@@ -254,7 +370,7 @@ input[type=file]{display:none}
 ==================================================================== */
 const GOOGLE_CLIENT_ID = '823207144699-ev9jbopvcsa97fg66fbl2p48hu1imu23.apps.googleusercontent.com';
 const GOOGLE_API_KEY   = 'AIzaSyAOm5X9XdE7j0Ic09JMQlK4qos-7jNSuEw';
-const GOOGLE_SCOPE     = 'https://www.googleapis.com/auth/drive.file';
+const GOOGLE_SCOPE     = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 </script>
 <script>
 /* ================= pdf.js ================= */
@@ -263,24 +379,29 @@ if(window.pdfjsLib){
 }
 
 /* ================= IndexedDB ================= */
-const DB_NOME='minha-estante', STORE='livros';
+const DB_NOME='minha-estante', STORE='livros', META='meta';
 let db;
 function abrirDB(){
   return new Promise((res,rej)=>{
-    const r=indexedDB.open(DB_NOME,1);
+    const r=indexedDB.open(DB_NOME,2);
     r.onupgradeneeded=e=>{
       const d=e.target.result;
       if(!d.objectStoreNames.contains(STORE))
         d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});
+      if(!d.objectStoreNames.contains(META))
+        d.createObjectStore(META,{keyPath:'chave'});
     };
     r.onsuccess=e=>{db=e.target.result;res()};
     r.onerror=()=>rej(r.error);
   });
 }
 function tx(modo){return db.transaction(STORE,modo).objectStore(STORE)}
+function txM(modo){return db.transaction(META,modo).objectStore(META)}
 const listar=()=>new Promise((res,rej)=>{const r=tx('readonly').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const salvar=l=>new Promise((res,rej)=>{const r=tx('readwrite').put(l);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const apagar=id=>new Promise((res,rej)=>{const r=tx('readwrite').delete(id);r.onsuccess=res;r.onerror=()=>rej(r.error)});
+const getMeta=chave=>new Promise(res=>{const r=txM('readonly').get(chave);r.onsuccess=()=>res(r.result?r.result.valor:null);r.onerror=()=>res(null)});
+const setMeta=(chave,valor)=>new Promise(res=>{const r=txM('readwrite').put({chave,valor});r.onsuccess=()=>res();r.onerror=()=>res()});
 
 /* ================= util ================= */
 const $=s=>document.querySelector(s);
@@ -370,24 +491,53 @@ async function gerarCapasFaltantes(){
 }
 
 /* ================= render ================= */
-let cache=[], selecionado=null, urlsCapas=[];
+let cache=[], selecionado=null, urlsCapas=[], filtroCategoria='__todas__';
+const nomeStatus={quero:'Quero ler',lendo:'Lendo',lido:'Lido'};
+function badgeDe(l){
+  if(l.status==='lido')return '<span class="badge lido">lido</span>';
+  if(l.status==='lendo')return '<span class="badge lendo">lendo</span>';
+  if(l.status==='quero')return '<span class="badge quero">quero ler</span>';
+  return '';
+}
+function renderChips(){
+  const cats=[...new Set(cache.map(l=>(l.categoria||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const box=$('#chips');
+  if(!cats.length){box.innerHTML='';return}
+  let html=`<button class="chip ${filtroCategoria==='__todas__'?'ativo':''}" data-cat="__todas__">Todas</button>`;
+  for(const c of cats) html+=`<button class="chip ${filtroCategoria===c?'ativo':''}" data-cat="${c.replace(/"/g,'&quot;')}">${c}</button>`;
+  box.innerHTML=html;
+  box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{filtroCategoria=b.dataset.cat;render()});
+  // datalist de categorias na edição
+  $('#listaCategorias').innerHTML=cats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">`).join('');
+}
 async function render(){
   urlsCapas.forEach(u=>URL.revokeObjectURL(u));urlsCapas=[];
   cache=await listar();
+  renderChips();
   const filtro=$('#busca').value.trim().toLowerCase();
-  const lista=cache.filter(l=>!filtro||l.titulo.toLowerCase().includes(filtro)||(l.autor||'').toLowerCase().includes(filtro))
-                   .sort((a,b)=>a.titulo.localeCompare(b.titulo,'pt-BR'));
+  const ordem=$('#ordenar').value;
+  const ordStatus={lendo:0,quero:1,lido:2,undefined:3,null:3,'':3};
+  let lista=cache.filter(l=>{
+    const okBusca=!filtro||l.titulo.toLowerCase().includes(filtro)||(l.autor||'').toLowerCase().includes(filtro);
+    const okCat=filtroCategoria==='__todas__'||(l.categoria||'').trim()===filtroCategoria;
+    return okBusca&&okCat;
+  });
+  lista.sort((a,b)=>{
+    if(ordem==='titulo')return a.titulo.localeCompare(b.titulo,'pt-BR');
+    if(ordem==='autor')return (a.autor||'~').localeCompare(b.autor||'~','pt-BR');
+    if(ordem==='status')return (ordStatus[a.status]??3)-(ordStatus[b.status]??3);
+    return (b.data||0)-(a.data||0); // recentes
+  });
   const el=$('#livros');el.innerHTML='';
   $('#vazio').hidden=cache.length>0;
   for(const l of lista){
     let b;
+    const prog = l.progresso?`<div class="barraProg"><i style="width:${Math.round(l.progresso*100)}%"></i></div>`:'';
     if(l.capa){
       b=document.createElement('button');
       b.className='capaLivro';
-      const img=document.createElement('img');
       const u=URL.createObjectURL(l.capa);urlsCapas.push(u);
-      img.src=u;img.alt=l.titulo;
-      b.appendChild(img);
+      b.innerHTML=`${badgeDe(l)}<img src="${u}" alt="${l.titulo.replace(/"/g,'&quot;')}">${prog}`;
       b.setAttribute('aria-label',l.titulo);
     }else{
       b=document.createElement('button');
@@ -395,7 +545,7 @@ async function render(){
       b.style.background=`linear-gradient(180deg,${corDe(l.titulo)} 0%,${corDe(l.titulo)} 85%,rgba(0,0,0,.25))`;
       b.style.height=alturaDe(l.titulo)+'px';
       b.setAttribute('aria-label',l.titulo);
-      b.innerHTML=`<span></span><i class="tipo">${l.tipo.toUpperCase()}</i>`;
+      b.innerHTML=`${badgeDe(l)}<span></span><i class="tipo">${l.tipo.toUpperCase()}</i>${prog}`;
       b.querySelector('span').textContent=l.titulo;
     }
     b.onclick=()=>abrirPainel(l);
@@ -403,12 +553,121 @@ async function render(){
   }
   mostrarEspaco();
 }
+$('#ordenar').onchange=()=>render();
 async function mostrarEspaco(){
+  let base;
   try{
     const est=await navigator.storage.estimate();
-    $('#espaco').textContent=`${cache.length} livro(s) · ${fmtTam(est.usage||0)} usados de ${fmtTam(est.quota||0)} disponíveis`;
-  }catch{$('#espaco').textContent=`${cache.length} livro(s)`}
+    base=`${cache.length} livro(s) · ${fmtTam(est.usage||0)} usados de ${fmtTam(est.quota||0)} disponíveis`;
+  }catch{base=`${cache.length} livro(s)`}
+  let quando='';
+  try{
+    const t=await getMeta('ultimaSync');
+    if(t){
+      const min=Math.round((Date.now()-t)/60000);
+      quando = min<1?' · sincronizado agora' : min<60?` · sincronizado há ${min} min` : ` · sincronizado em ${new Date(t).toLocaleDateString('pt-BR')}`;
+    }
+  }catch{}
+  $('#espaco').textContent=base+quando;
 }
+
+/* ================= LEITOR DE EPUB ================= */
+let ebook=null, rendition=null, leitorLivro=null, fonteLeitor=100;
+async function abrirLeitor(l){
+  if(l.tipo!=='epub'){return}
+  // espera a biblioteca carregar (até ~4s)
+  if(!window.ePub){
+    avisar('Preparando o leitor…');
+    for(let i=0;i<40 && !window.ePub;i++){await new Promise(r=>setTimeout(r,100))}
+  }
+  if(!window.ePub){avisar('Leitor não carregou — verifique a conexão e tente de novo');return}
+  leitorLivro=l;
+  $('#veuLivro').classList.remove('aberto');
+  $('#leitorTitulo').textContent=l.titulo;
+  $('#leitor').hidden=false;
+  $('#leitorArea').innerHTML='';
+  try{
+    const buf=await l.blob.arrayBuffer();
+    ebook=ePub(buf);
+    rendition=ebook.renderTo('leitorArea',{
+      flow:'scrolled-doc',
+      manager:'continuous',
+      width:'100%',
+      height:'100%'
+    });
+    fonteLeitor=l.fonteLeitor||100;
+    aplicarTemaLeitor();
+    await rendition.display(l.cfi||undefined);
+    await ebook.ready;
+    // reforça o tamanho depois de montar (evita tela em branco)
+    setTimeout(()=>{try{rendition.resize()}catch(e){}},300);
+    try{await ebook.locations.generate(1200)}catch(e){}
+    rendition.on('relocated',async loc=>{
+      leitorLivro.cfi=loc.start.cfi;
+      let pct=0;
+      try{pct=ebook.locations.percentageFromCfi(loc.start.cfi)||0}catch(e){}
+      leitorLivro.progresso=pct;
+      if(pct>0.02 && leitorLivro.status!=='lido')leitorLivro.status='lendo';
+      if(pct>=0.985)leitorLivro.status='lido';
+      $('#leitorProgresso').textContent=Math.round(pct*100)+'%';
+      await salvar(leitorLivro);
+    });
+  }catch(e){
+    avisar('Não consegui abrir este EPUB');
+    fecharLeitor();
+  }
+}
+function aplicarTemaLeitor(){
+  if(!rendition)return;
+  const escuro=$('#leitor').classList.contains('escuro');
+  rendition.themes.fontSize(fonteLeitor+'%');
+  rendition.themes.override('color', escuro?'#E8E0CF':'#20160B');
+  rendition.themes.override('background', escuro?'#14100C':'#F3ECD9');
+}
+function fecharLeitor(){
+  try{if(rendition)rendition.destroy()}catch(e){}
+  try{if(ebook)ebook.destroy()}catch(e){}
+  rendition=null;ebook=null;
+  $('#leitor').hidden=true;
+  render();
+}
+$('#leitorFechar').onclick=fecharLeitor;
+$('#leitorProximo').onclick=()=>rendition&&rendition.next();
+$('#leitorAnterior').onclick=()=>rendition&&rendition.prev();
+$('#leitorMais').onclick=async()=>{fonteLeitor=Math.min(200,fonteLeitor+10);if(leitorLivro){leitorLivro.fonteLeitor=fonteLeitor;await salvar(leitorLivro)}aplicarTemaLeitor()};
+$('#leitorMenos').onclick=async()=>{fonteLeitor=Math.max(60,fonteLeitor-10);if(leitorLivro){leitorLivro.fonteLeitor=fonteLeitor;await salvar(leitorLivro)}aplicarTemaLeitor()};
+$('#leitorTema').onclick=()=>{$('#leitor').classList.toggle('escuro');aplicarTemaLeitor()};
+document.addEventListener('keydown',e=>{
+  if($('#leitor').hidden)return;
+  if(e.key==='ArrowRight')rendition&&rendition.next();
+  if(e.key==='ArrowLeft')rendition&&rendition.prev();
+  if(e.key==='Escape')fecharLeitor();
+});
+
+/* ================= BACKUP ================= */
+$('#btnBackup').onclick=async()=>{
+  const livros=await listar();
+  if(!livros.length){avisar('Nada pra fazer backup ainda');return}
+  if(!window.JSZip){avisar('Aguarde carregar e tente de novo');return}
+  avisar('Montando backup…');
+  try{
+    const zip=new JSZip();
+    const usados={};
+    for(const l of livros){
+      let nome=(l.titulo||'livro').replace(/[\\/:*?"<>|]/g,'').trim()||'livro';
+      let base=nome; let n=1;
+      while(usados[nome+'.'+l.tipo]){nome=base+' ('+(++n)+')'}
+      usados[nome+'.'+l.tipo]=1;
+      zip.file(nome+'.'+l.tipo,l.blob);
+    }
+    const blob=await zip.generateAsync({type:'blob'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='backup-minha-estante.zip';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    avisar('Backup baixado');
+  }catch(e){avisar('Falhou ao montar o backup')}
+};
 
 /* ================= adicionar ================= */
 $('#btnAdd').onclick=()=>$('#arquivo').click();
@@ -438,6 +697,7 @@ $('#arquivo').onchange=async e=>{
   e.target.value='';
   await render();
   if(ok)avisar(ok>1?`${ok} livros guardados na estante`:'Livro guardado na estante');
+  if(ok)sincronizar(false);
 };
 
 /* ================= painel ================= */
@@ -446,13 +706,27 @@ function abrirPainel(l){
   selecionado=l;
   $('#pTitulo').textContent=l.titulo;
   $('#pAutor').textContent=l.autor?`por ${l.autor}`:'Autor não informado';
-  $('#pMeta').textContent=`${l.tipo.toUpperCase()} · ${fmtTam(l.tamanho)} · adicionado em ${new Date(l.data).toLocaleDateString('pt-BR')}`;
+  const extra=[l.tipo.toUpperCase(),fmtTam(l.tamanho)];
+  if(l.categoria&&l.categoria.trim())extra.push('📚 '+l.categoria.trim());
+  if(l.progresso)extra.push(Math.round(l.progresso*100)+'% lido');
+  $('#pMeta').textContent=extra.join(' · ');
+  // botões de status
+  const sl=$('#pStatusLinha');
+  sl.innerHTML=['quero','lendo','lido'].map(s=>
+    `<button class="stBtn ${l.status===s?'ativo':''}" data-st="${s}">${nomeStatus[s]}</button>`).join('');
+  sl.querySelectorAll('.stBtn').forEach(b=>b.onclick=async()=>{
+    selecionado.status = selecionado.status===b.dataset.st ? null : b.dataset.st;
+    await salvar(selecionado);
+    abrirPainel(selecionado);
+    await render();
+  });
   const img=$('#pCapa');
   if(urlCapaPainel){URL.revokeObjectURL(urlCapaPainel);urlCapaPainel=null}
   if(l.capa){
     urlCapaPainel=URL.createObjectURL(l.capa);
     img.src=urlCapaPainel;img.hidden=false;
   }else{img.hidden=true}
+  $('#btnAbrir').textContent = l.tipo==='epub'?'📖 Ler':'📖 Abrir';
   $('#veuLivro').classList.add('aberto');
 }
 document.querySelectorAll('[data-fecha]').forEach(b=>b.onclick=e=>e.target.closest('.veu').classList.remove('aberto'));
@@ -461,12 +735,13 @@ document.querySelectorAll('.veu').forEach(v=>v.onclick=e=>{if(e.target===v)v.cla
 $('#btnAbrir').onclick=()=>{
   if(!selecionado)return;
   if(selecionado.tipo==='epub'){
-    avisar('EPUB não abre direto no navegador — use "Baixar" e abra no seu leitor');
-    return;
+    abrirLeitor(selecionado);
+  }else{
+    const url=URL.createObjectURL(selecionado.blob);
+    window.open(url,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    if(selecionado.status!=='lido'){selecionado.status='lendo';salvar(selecionado).then(render)}
   }
-  const url=URL.createObjectURL(selecionado.blob);
-  window.open(url,'_blank');
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
 };
 $('#btnBaixar').onclick=async()=>{
   if(!selecionado)return;
@@ -483,24 +758,34 @@ $('#btnEditar').onclick=()=>{
   $('#veuLivro').classList.remove('aberto');
   $('#eTitulo').value=selecionado.titulo;
   $('#eAutor').value=selecionado.autor||'';
+  $('#eCategoria').value=selecionado.categoria||'';
   $('#veuEditar').classList.add('aberto');
 };
 $('#btnSalvar').onclick=async()=>{
   const t=$('#eTitulo').value.trim();
   if(!t){avisar('O título não pode ficar vazio');return}
+  const mudouTitulo = selecionado.titulo!==t;
   selecionado.titulo=t;
   selecionado.autor=$('#eAutor').value.trim();
+  selecionado.categoria=$('#eCategoria').value.trim();
+  if(mudouTitulo && selecionado.driveId) selecionado.driveDirty=true;
   await salvar(selecionado);
   $('#veuEditar').classList.remove('aberto');
   await render();
   avisar('Livro atualizado');
+  sincronizar(false);
 };
 $('#btnApagar').onclick=async()=>{
-  if(!confirm(`Apagar "${selecionado.titulo}" da estante? O arquivo será removido do aparelho.`))return;
+  if(!confirm(`Apagar "${selecionado.titulo}" da estante? O arquivo será removido deste aparelho e da nuvem.`))return;
+  if(selecionado.driveId){
+    const lixo=(await getMeta('lixo'))||[];
+    if(!lixo.includes(selecionado.driveId)){lixo.push(selecionado.driveId);await setMeta('lixo',lixo)}
+  }
   await apagar(selecionado.id);
   $('#veuLivro').classList.remove('aberto');
   await render();
   avisar('Livro apagado');
+  sincronizar(false);
 };
 
 /* ================= GOOGLE DRIVE ================= */
@@ -594,7 +879,154 @@ async function pickerCallback(data){
   }
   await render();
   if(ok)avisar(ok>1?`${ok} livros importados do Drive`:'Livro importado do Drive');
+  if(ok)sincronizar(false);
 }
+
+/* ================= SINCRONIZAÇÃO (pasta no Drive) ================= */
+const PASTA_NOME='Minha Estante';
+
+function pedirToken(interativo){
+  return new Promise(async(res,rej)=>{
+    await prepararGoogle();
+    tokenClient.callback=r=>{
+      if(r.error)return rej(r);
+      tokenAcesso=r.access_token;res(r.access_token);
+    };
+    tokenClient.error_callback=e=>rej(e);
+    try{
+      tokenClient.requestAccessToken({prompt:interativo?(tokenAcesso?'':'consent'):''});
+    }catch(e){rej(e)}
+  });
+}
+
+async function acharOuCriarPasta(token){
+  const q=encodeURIComponent(`name='${PASTA_NOME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  let r=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&spaces=drive`,{headers:{Authorization:'Bearer '+token}});
+  let d=await r.json();
+  if(d.files&&d.files.length)return d.files[0].id;
+  r=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({name:PASTA_NOME,mimeType:'application/vnd.google-apps.folder'})
+  });
+  d=await r.json();
+  return d.id;
+}
+
+async function subirParaDrive(token,pastaId,livro){
+  const ext=livro.tipo==='pdf'?'.pdf':'.epub';
+  const tipoMime=livro.tipo==='pdf'?'application/pdf':'application/epub+zip';
+  const nome=livro.titulo.replace(/[\\/:*?"<>|]/g,'')+ext;
+  const meta={name:nome,parents:[pastaId],appProperties:{estante:'1'}};
+  const boundary='estante'+Date.now()+Math.random().toString(36).slice(2);
+  const delim=`\r\n--${boundary}\r\n`;
+  const fim=`\r\n--${boundary}--`;
+  const cabMeta=delim+'Content-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta);
+  const cabMedia=delim+'Content-Type: '+tipoMime+'\r\n\r\n';
+  const corpo=new Blob([cabMeta,cabMedia,livro.blob,fim]);
+  const r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'multipart/related; boundary='+boundary},
+    body:corpo
+  });
+  if(!r.ok)throw new Error('upload');
+  const d=await r.json();
+  return d.id;
+}
+
+async function listarDrive(token,pastaId){
+  const q=encodeURIComponent(`'${pastaId}' in parents and trashed=false`);
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,size,mimeType)&pageSize=1000`,{headers:{Authorization:'Bearer '+token}});
+  const d=await r.json();
+  return d.files||[];
+}
+
+async function renomearNoDrive(token,driveId,livro){
+  const ext=livro.tipo==='pdf'?'.pdf':'.epub';
+  const nome=livro.titulo.replace(/[\\/:*?"<>|]/g,'')+ext;
+  await fetch(`https://www.googleapis.com/drive/v3/files/${driveId}`,{
+    method:'PATCH',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({name:nome})
+  });
+}
+async function lixeiraNoDrive(token,driveId){
+  await fetch(`https://www.googleapis.com/drive/v3/files/${driveId}`,{
+    method:'PATCH',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({trashed:true})
+  });
+}
+
+async function sincronizar(interativo){
+  if(!driveConfigurado()){
+    if(interativo)avisar('Falta configurar o Drive — veja COMO-CONECTAR-DRIVE');
+    return;
+  }
+  const btn=$('#btnSync');
+  btn.classList.add('girando');
+  try{
+    if(interativo)avisar('Sincronizando…');
+    const token=await pedirToken(interativo);
+    const pastaId=await acharOuCriarPasta(token);
+
+    // 0) manda pra lixeira do Drive o que foi apagado neste aparelho
+    const lixo=(await getMeta('lixo'))||[];
+    if(lixo.length){
+      for(const id of lixo){ try{await lixeiraNoDrive(token,id)}catch(e){} }
+      await setMeta('lixo',[]);
+    }
+
+    // 1) envia/atualiza os livros locais
+    const locais=await listar();
+    for(const l of locais){
+      if(!l.driveId){
+        if(interativo)avisar(`Enviando "${l.titulo}"…`);
+        try{
+          const id=await subirParaDrive(token,pastaId,l);
+          if(id){l.driveId=id;delete l.driveDirty;await salvar(l)}
+        }catch(e){}
+      }else if(l.driveDirty){
+        try{await renomearNoDrive(token,l.driveId,l);delete l.driveDirty;await salvar(l)}catch(e){}
+      }
+    }
+
+    // 2) baixa os que estão no Drive mas não neste aparelho
+    const jaTenho=new Set((await listar()).map(x=>x.driveId).filter(Boolean));
+    const remotos=await listarDrive(token,pastaId);
+    let baixados=0;
+    for(const f of remotos){
+      if(jaTenho.has(f.id))continue;
+      if(interativo)avisar(`Baixando "${f.name}"…`);
+      try{
+        const rr=await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,{headers:{Authorization:'Bearer '+token}});
+        if(!rr.ok)continue;
+        const blob=await rr.blob();
+        const ehPdf=/pdf/i.test(f.mimeType)||/\.pdf$/i.test(f.name);
+        const livro={
+          titulo:tituloDoArquivo(f.name),autor:'',
+          tipo:ehPdf?'pdf':'epub',tamanho:blob.size,
+          data:Date.now(),blob,capa:null,capaTentada:false,driveId:f.id
+        };
+        livro.capa=await gerarCapa(livro);
+        livro.capaTentada=true;
+        await salvar(livro);
+        baixados++;
+      }catch(e){}
+    }
+
+    await setMeta('ultimaSync',Date.now());
+    await render();
+    if(interativo)avisar('Estante sincronizada'+(baixados?` · ${baixados} novo(s)`:''));
+    else if(baixados)avisar(baixados>1?`${baixados} livros novos de outro aparelho`:'1 livro novo de outro aparelho');
+  }catch(e){
+    if(interativo)avisar('Não consegui sincronizar — toque de novo pra autorizar');
+  }finally{
+    btn.classList.remove('girando');
+  }
+}
+
+$('#btnSync').onclick=()=>sincronizar(true);
 
 /* ================= busca ================= */
 $('#busca').oninput=()=>render();
@@ -605,7 +1037,21 @@ $('#busca').oninput=()=>render();
   await render();
   gerarCapasFaltantes(); /* gera capa dos livros antigos em segundo plano */
   if(navigator.storage&&navigator.storage.persist){navigator.storage.persist()}
+  /* --- auto-limpeza: mata service workers e caches antigos que travavam o app --- */
+  try{
+    if('serviceWorker'in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const r of regs){try{await r.unregister()}catch(e){}}
+    }
+    if(window.caches){
+      const ks=await caches.keys();
+      for(const k of ks){try{await caches.delete(k)}catch(e){}}
+    }
+  }catch(e){}
+  /* registra o kill-switch (sw.js), que se autodestrói e libera versoes futuras */
   if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+  /* tenta sincronizar sozinho ao abrir (silencioso; se precisar de login, ignora) */
+  setTimeout(()=>sincronizar(false),1500);
 })();
 </script>
 </body>
