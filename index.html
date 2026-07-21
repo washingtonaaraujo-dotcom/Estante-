@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minha Estante</title>
+<meta name="description" content="Sua biblioteca digital pessoal — guarde PDFs e EPUBs direto no aparelho.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#16211C">
+<style>
+:root{
+  --fundo:#16211C;        /* verde biblioteca profundo */
+  --fundo-2:#1D2B25;
+  --papel:#EFE7D5;        /* creme de página */
+  --papel-fraco:#B8AE97;
+  --latao:#C9973F;        /* latão / dourado */
+  --madeira:#5C4330;
+  --madeira-clara:#7A5A3E;
+  --terracota:#A6543C;
+  --petroleo:#3E6B62;
+  --perigo:#C15B4A;
+  --raio:14px;
+  --fonte-display:"Fraunces",Georgia,"Times New Roman",serif;
+  --fonte-corpo:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--fundo);
+  color:var(--papel);
+  font-family:var(--fonte-corpo);
+  min-height:100vh;
+  padding-bottom:110px;
+}
+header{
+  padding:26px 20px 10px;
+  max-width:760px;margin:0 auto;
+}
+.marca{display:flex;align-items:baseline;gap:10px}
+h1{
+  font-family:var(--fonte-display);
+  font-weight:600;font-size:1.9rem;letter-spacing:.01em;
+}
+h1 em{font-style:italic;color:var(--latao)}
+.sub{color:var(--papel-fraco);font-size:.85rem;margin-top:4px}
+.busca{
+  margin:18px auto 0;max-width:760px;padding:0 20px;
+}
+.busca input{
+  width:100%;padding:12px 16px;border-radius:var(--raio);
+  border:1px solid #2C3B34;background:var(--fundo-2);
+  color:var(--papel);font-size:1rem;outline:none;
+}
+.busca input:focus{border-color:var(--latao)}
+.busca input::placeholder{color:var(--papel-fraco)}
+main{max-width:760px;margin:0 auto;padding:8px 20px}
+.info-espaco{
+  color:var(--papel-fraco);font-size:.78rem;margin:10px 2px 0;
+}
+/* ---------- ESTANTE ---------- */
+.prateleira{
+  margin-top:26px;
+  position:relative;
+}
+.livros{
+  display:flex;align-items:flex-end;gap:6px;
+  flex-wrap:wrap;
+  padding:0 8px 0;
+  min-height:60px;
+}
+.tabua{
+  height:16px;border-radius:3px;
+  background:linear-gradient(180deg,var(--madeira-clara),var(--madeira));
+  box-shadow:0 6px 14px rgba(0,0,0,.45);
+  margin-top:-2px;
+}
+.lombada{
+  border:none;cursor:pointer;
+  border-radius:4px 4px 2px 2px;
+  width:44px;
+  display:flex;align-items:center;justify-content:center;
+  padding:10px 4px;
+  box-shadow:inset -4px 0 6px rgba(0,0,0,.28), inset 2px 0 3px rgba(255,255,255,.12), 0 2px 5px rgba(0,0,0,.35);
+  transition:transform .15s ease;
+  position:relative;
+}
+.lombada:active{transform:translateY(-6px)}
+@media(hover:hover){.lombada:hover{transform:translateY(-8px)}}
+.lombada span{
+  writing-mode:vertical-rl;
+  font-family:var(--fonte-display);
+  font-size:.8rem;font-weight:600;letter-spacing:.03em;
+  color:rgba(255,250,238,.96);
+  max-height:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+.lombada .tipo{
+  position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+  writing-mode:horizontal-tb;
+  font-family:var(--fonte-corpo);
+  font-size:.5rem;font-weight:700;letter-spacing:.08em;
+  color:rgba(255,250,238,.75);
+}
+.vazio{
+  text-align:center;color:var(--papel-fraco);
+  padding:44px 16px;font-size:.95rem;line-height:1.6;
+}
+.vazio strong{color:var(--latao)}
+/* ---------- BOTÃO ADICIONAR ---------- */
+.add{
+  position:fixed;bottom:24px;right:22px;z-index:20;
+  width:62px;height:62px;border-radius:50%;
+  border:none;cursor:pointer;
+  background:var(--latao);color:#221A0C;
+  font-size:2rem;line-height:1;
+  box-shadow:0 8px 20px rgba(0,0,0,.5);
+}
+.add:active{transform:scale(.94)}
+/* ---------- MODAL ---------- */
+.veu{
+  position:fixed;inset:0;background:rgba(8,12,10,.72);
+  display:none;align-items:flex-end;justify-content:center;z-index:30;
+}
+.veu.aberto{display:flex}
+.painel{
+  background:var(--fundo-2);width:100%;max-width:520px;
+  border-radius:20px 20px 0 0;
+  padding:24px 22px calc(24px + env(safe-area-inset-bottom));
+  border-top:2px solid var(--latao);
+  animation:sobe .2s ease;
+}
+@keyframes sobe{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.painel h2{
+  font-family:var(--fonte-display);font-weight:600;
+  font-size:1.3rem;line-height:1.3;margin-bottom:4px;
+}
+.painel .autor{color:var(--papel-fraco);font-size:.9rem;margin-bottom:6px}
+.painel .meta{color:var(--papel-fraco);font-size:.78rem;margin-bottom:18px}
+.acoes{display:grid;gap:10px}
+.botao{
+  padding:13px 16px;border-radius:var(--raio);border:none;cursor:pointer;
+  font-size:1rem;font-weight:600;width:100%;
+  background:#2C3B34;color:var(--papel);
+  display:flex;align-items:center;gap:10px;justify-content:center;
+}
+.botao.principal{background:var(--latao);color:#221A0C}
+.botao.apagar{background:transparent;color:var(--perigo);border:1px solid var(--perigo)}
+.campo{margin-bottom:12px}
+.campo label{display:block;font-size:.8rem;color:var(--papel-fraco);margin-bottom:5px}
+.campo input{
+  width:100%;padding:11px 14px;border-radius:10px;
+  border:1px solid #2C3B34;background:var(--fundo);
+  color:var(--papel);font-size:1rem;outline:none;
+}
+.campo input:focus{border-color:var(--latao)}
+.fechar{
+  margin-top:14px;background:none;border:none;color:var(--papel-fraco);
+  width:100%;padding:10px;font-size:.9rem;cursor:pointer;
+}
+.aviso{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);
+  background:var(--latao);color:#221A0C;font-weight:600;
+  padding:10px 18px;border-radius:12px;font-size:.9rem;
+  box-shadow:0 6px 16px rgba(0,0,0,.4);z-index:50;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+  max-width:90vw;text-align:center;
+}
+.aviso.mostra{opacity:1}
+input[type=file]{display:none}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca"><h1>Minha <em>Estante</em></h1></div>
+  <p class="sub">Seus livros digitais, guardados no seu aparelho</p>
+</header>
+
+<div class="busca">
+  <input id="busca" type="search" placeholder="Buscar por título ou autor…" autocomplete="off">
+  <p class="info-espaco" id="espaco"></p>
+</div>
+
+<main>
+  <div class="prateleira">
+    <div class="livros" id="livros"></div>
+    <div class="tabua"></div>
+  </div>
+  <div class="vazio" id="vazio" hidden>
+    Sua estante está vazia.<br>
+    Toque no <strong>+</strong> pra adicionar seu primeiro PDF ou EPUB.
+  </div>
+</main>
+
+<button class="add" id="btnAdd" aria-label="Adicionar livro">+</button>
+<input type="file" id="arquivo" accept=".pdf,.epub,application/pdf,application/epub+zip" multiple>
+
+<!-- painel do livro -->
+<div class="veu" id="veuLivro">
+  <div class="painel" role="dialog" aria-modal="true">
+    <h2 id="pTitulo"></h2>
+    <p class="autor" id="pAutor"></p>
+    <p class="meta" id="pMeta"></p>
+    <div class="acoes">
+      <button class="botao principal" id="btnAbrir">📖 Abrir</button>
+      <button class="botao" id="btnBaixar">⬇️ Baixar / compartilhar</button>
+      <button class="botao" id="btnEditar">✏️ Editar título e autor</button>
+      <button class="botao apagar" id="btnApagar">🗑️ Apagar da estante</button>
+    </div>
+    <button class="fechar" data-fecha>Fechar</button>
+  </div>
+</div>
+
+<!-- painel de edição -->
+<div class="veu" id="veuEditar">
+  <div class="painel" role="dialog" aria-modal="true">
+    <h2 style="margin-bottom:16px">Editar livro</h2>
+    <div class="campo">
+      <label for="eTitulo">Título</label>
+      <input id="eTitulo" type="text">
+    </div>
+    <div class="campo">
+      <label for="eAutor">Autor</label>
+      <input id="eAutor" type="text" placeholder="Opcional">
+    </div>
+    <div class="acoes">
+      <button class="botao principal" id="btnSalvar">Salvar</button>
+    </div>
+    <button class="fechar" data-fecha>Cancelar</button>
+  </div>
+</div>
+
+<div class="aviso" id="aviso"></div>
+
+<script>
+/* ================= IndexedDB ================= */
+const DB_NOME='minha-estante', STORE='livros';
+let db;
+function abrirDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NOME,1);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE))
+        d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});
+    };
+    r.onsuccess=e=>{db=e.target.result;res()};
+    r.onerror=()=>rej(r.error);
+  });
+}
+function tx(modo){return db.transaction(STORE,modo).objectStore(STORE)}
+const listar=()=>new Promise((res,rej)=>{const r=tx('readonly').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const salvar=l=>new Promise((res,rej)=>{const r=tx('readwrite').put(l);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const apagar=id=>new Promise((res,rej)=>{const r=tx('readwrite').delete(id);r.onsuccess=res;r.onerror=()=>rej(r.error)});
+
+/* ================= util ================= */
+const $=s=>document.querySelector(s);
+const cores=['#A6543C','#3E6B62','#8A6D2F','#5B4A78','#7A3B4E','#42633B','#3E5A78','#8C5A32'];
+function corDe(t){let h=0;for(const c of t)h=(h*31+c.charCodeAt(0))>>>0;return cores[h%cores.length]}
+function alturaDe(t){let h=0;for(const c of t)h=(h*17+c.charCodeAt(0))>>>0;return 150+(h%70)} /* 150–220px */
+function fmtTam(b){return b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB'}
+function avisar(msg){const a=$('#aviso');a.textContent=msg;a.classList.add('mostra');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('mostra'),2600)}
+function tituloDoArquivo(nome){return nome.replace(/\.(pdf|epub)$/i,'').replace(/[_-]+/g,' ').trim()}
+
+/* ================= render ================= */
+let cache=[], selecionado=null;
+async function render(){
+  cache=await listar();
+  const filtro=$('#busca').value.trim().toLowerCase();
+  const lista=cache.filter(l=>!filtro||l.titulo.toLowerCase().includes(filtro)||(l.autor||'').toLowerCase().includes(filtro))
+                   .sort((a,b)=>a.titulo.localeCompare(b.titulo,'pt-BR'));
+  const el=$('#livros');el.innerHTML='';
+  $('#vazio').hidden=cache.length>0;
+  for(const l of lista){
+    const b=document.createElement('button');
+    b.className='lombada';
+    b.style.background=`linear-gradient(180deg,${corDe(l.titulo)} 0%,${corDe(l.titulo)} 85%,rgba(0,0,0,.25))`;
+    b.style.height=alturaDe(l.titulo)+'px';
+    b.setAttribute('aria-label',l.titulo);
+    b.innerHTML=`<span></span><i class="tipo">${l.tipo.toUpperCase()}</i>`;
+    b.querySelector('span').textContent=l.titulo;
+    b.onclick=()=>abrirPainel(l);
+    el.appendChild(b);
+  }
+  mostrarEspaco();
+}
+async function mostrarEspaco(){
+  try{
+    const est=await navigator.storage.estimate();
+    const usado=fmtTam(est.usage||0), total=fmtTam(est.quota||0);
+    $('#espaco').textContent=`${cache.length} livro(s) · ${usado} usados de ${total} disponíveis`;
+  }catch{ $('#espaco').textContent=`${cache.length} livro(s)` }
+}
+
+/* ================= adicionar ================= */
+$('#btnAdd').onclick=()=>$('#arquivo').click();
+$('#arquivo').onchange=async e=>{
+  const arquivos=[...e.target.files];
+  for(const f of arquivos){
+    const ehPdf=/pdf$/i.test(f.name)||f.type==='application/pdf';
+    const ehEpub=/epub$/i.test(f.name)||f.type==='application/epub+zip';
+    if(!ehPdf&&!ehEpub){avisar(`"${f.name}" não é PDF nem EPUB`);continue}
+    await salvar({
+      titulo:tituloDoArquivo(f.name),
+      autor:'',
+      tipo:ehPdf?'pdf':'epub',
+      tamanho:f.size,
+      data:Date.now(),
+      blob:f
+    });
+  }
+  e.target.value='';
+  await render();
+  if(arquivos.length)avisar(arquivos.length>1?`${arquivos.length} livros guardados na estante`:'Livro guardado na estante');
+};
+
+/* ================= painel ================= */
+function abrirPainel(l){
+  selecionado=l;
+  $('#pTitulo').textContent=l.titulo;
+  $('#pAutor').textContent=l.autor?`por ${l.autor}`:'Autor não informado';
+  $('#pMeta').textContent=`${l.tipo.toUpperCase()} · ${fmtTam(l.tamanho)} · adicionado em ${new Date(l.data).toLocaleDateString('pt-BR')}`;
+  $('#veuLivro').classList.add('aberto');
+}
+document.querySelectorAll('[data-fecha]').forEach(b=>b.onclick=e=>e.target.closest('.veu').classList.remove('aberto'));
+document.querySelectorAll('.veu').forEach(v=>v.onclick=e=>{if(e.target===v)v.classList.remove('aberto')});
+
+$('#btnAbrir').onclick=()=>{
+  if(!selecionado)return;
+  if(selecionado.tipo==='epub'){
+    avisar('EPUB não abre direto no navegador — use "Baixar" e abra no seu leitor');
+    return;
+  }
+  const url=URL.createObjectURL(selecionado.blob);
+  window.open(url,'_blank');
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+};
+$('#btnBaixar').onclick=async()=>{
+  if(!selecionado)return;
+  const nome=selecionado.titulo.replace(/[\\/:*?"<>|]/g,'')+'.'+selecionado.tipo;
+  const arquivo=new File([selecionado.blob],nome,{type:selecionado.tipo==='pdf'?'application/pdf':'application/epub+zip'});
+  if(navigator.canShare&&navigator.canShare({files:[arquivo]})){
+    try{await navigator.share({files:[arquivo],title:selecionado.titulo});return}catch(e){if(e.name==='AbortError')return}
+  }
+  const url=URL.createObjectURL(arquivo);
+  const a=document.createElement('a');a.href=url;a.download=nome;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+};
+$('#btnEditar').onclick=()=>{
+  $('#veuLivro').classList.remove('aberto');
+  $('#eTitulo').value=selecionado.titulo;
+  $('#eAutor').value=selecionado.autor||'';
+  $('#veuEditar').classList.add('aberto');
+};
+$('#btnSalvar').onclick=async()=>{
+  const t=$('#eTitulo').value.trim();
+  if(!t){avisar('O título não pode ficar vazio');return}
+  selecionado.titulo=t;
+  selecionado.autor=$('#eAutor').value.trim();
+  await salvar(selecionado);
+  $('#veuEditar').classList.remove('aberto');
+  await render();
+  avisar('Livro atualizado');
+};
+$('#btnApagar').onclick=async()=>{
+  if(!confirm(`Apagar "${selecionado.titulo}" da estante? O arquivo será removido do aparelho.`))return;
+  await apagar(selecionado.id);
+  $('#veuLivro').classList.remove('aberto');
+  await render();
+  avisar('Livro apagado');
+};
+
+/* ================= busca ================= */
+$('#busca').oninput=()=>render();
+
+/* ================= init ================= */
+(async()=>{
+  await abrirDB();
+  await render();
+  if(navigator.storage&&navigator.storage.persist){
+    navigator.storage.persist(); /* pede pro navegador não apagar os livros */
+  }
+  if('serviceWorker'in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
