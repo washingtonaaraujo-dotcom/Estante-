@@ -1,4 +1,4 @@
-const CACHE = 'estante-v2';
+const CACHE = 'estante-v3';
 const ARQUIVOS = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
