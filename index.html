@@ -272,24 +272,29 @@ if(window.pdfjsLib){
 }
 
 /* ================= IndexedDB ================= */
-const DB_NOME='minha-estante', STORE='livros';
+const DB_NOME='minha-estante', STORE='livros', META='meta';
 let db;
 function abrirDB(){
   return new Promise((res,rej)=>{
-    const r=indexedDB.open(DB_NOME,1);
+    const r=indexedDB.open(DB_NOME,2);
     r.onupgradeneeded=e=>{
       const d=e.target.result;
       if(!d.objectStoreNames.contains(STORE))
         d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});
+      if(!d.objectStoreNames.contains(META))
+        d.createObjectStore(META,{keyPath:'chave'});
     };
     r.onsuccess=e=>{db=e.target.result;res()};
     r.onerror=()=>rej(r.error);
   });
 }
 function tx(modo){return db.transaction(STORE,modo).objectStore(STORE)}
+function txM(modo){return db.transaction(META,modo).objectStore(META)}
 const listar=()=>new Promise((res,rej)=>{const r=tx('readonly').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const salvar=l=>new Promise((res,rej)=>{const r=tx('readwrite').put(l);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const apagar=id=>new Promise((res,rej)=>{const r=tx('readwrite').delete(id);r.onsuccess=res;r.onerror=()=>rej(r.error)});
+const getMeta=chave=>new Promise(res=>{const r=txM('readonly').get(chave);r.onsuccess=()=>res(r.result?r.result.valor:null);r.onerror=()=>res(null)});
+const setMeta=(chave,valor)=>new Promise(res=>{const r=txM('readwrite').put({chave,valor});r.onsuccess=()=>res();r.onerror=()=>res()});
 
 /* ================= util ================= */
 const $=s=>document.querySelector(s);
@@ -413,10 +418,20 @@ async function render(){
   mostrarEspaco();
 }
 async function mostrarEspaco(){
+  let base;
   try{
     const est=await navigator.storage.estimate();
-    $('#espaco').textContent=`${cache.length} livro(s) · ${fmtTam(est.usage||0)} usados de ${fmtTam(est.quota||0)} disponíveis`;
-  }catch{$('#espaco').textContent=`${cache.length} livro(s)`}
+    base=`${cache.length} livro(s) · ${fmtTam(est.usage||0)} usados de ${fmtTam(est.quota||0)} disponíveis`;
+  }catch{base=`${cache.length} livro(s)`}
+  let quando='';
+  try{
+    const t=await getMeta('ultimaSync');
+    if(t){
+      const min=Math.round((Date.now()-t)/60000);
+      quando = min<1?' · sincronizado agora' : min<60?` · sincronizado há ${min} min` : ` · sincronizado em ${new Date(t).toLocaleDateString('pt-BR')}`;
+    }
+  }catch{}
+  $('#espaco').textContent=base+quando;
 }
 
 /* ================= adicionar ================= */
@@ -447,6 +462,7 @@ $('#arquivo').onchange=async e=>{
   e.target.value='';
   await render();
   if(ok)avisar(ok>1?`${ok} livros guardados na estante`:'Livro guardado na estante');
+  if(ok)sincronizar(false);
 };
 
 /* ================= painel ================= */
@@ -497,19 +513,27 @@ $('#btnEditar').onclick=()=>{
 $('#btnSalvar').onclick=async()=>{
   const t=$('#eTitulo').value.trim();
   if(!t){avisar('O título não pode ficar vazio');return}
+  const mudouTitulo = selecionado.titulo!==t;
   selecionado.titulo=t;
   selecionado.autor=$('#eAutor').value.trim();
+  if(mudouTitulo && selecionado.driveId) selecionado.driveDirty=true;
   await salvar(selecionado);
   $('#veuEditar').classList.remove('aberto');
   await render();
   avisar('Livro atualizado');
+  sincronizar(false);
 };
 $('#btnApagar').onclick=async()=>{
-  if(!confirm(`Apagar "${selecionado.titulo}" da estante? O arquivo será removido do aparelho.`))return;
+  if(!confirm(`Apagar "${selecionado.titulo}" da estante? O arquivo será removido deste aparelho e da nuvem.`))return;
+  if(selecionado.driveId){
+    const lixo=(await getMeta('lixo'))||[];
+    if(!lixo.includes(selecionado.driveId)){lixo.push(selecionado.driveId);await setMeta('lixo',lixo)}
+  }
   await apagar(selecionado.id);
   $('#veuLivro').classList.remove('aberto');
   await render();
   avisar('Livro apagado');
+  sincronizar(false);
 };
 
 /* ================= GOOGLE DRIVE ================= */
@@ -603,6 +627,7 @@ async function pickerCallback(data){
   }
   await render();
   if(ok)avisar(ok>1?`${ok} livros importados do Drive`:'Livro importado do Drive');
+  if(ok)sincronizar(false);
 }
 
 /* ================= SINCRONIZAÇÃO (pasta no Drive) ================= */
@@ -664,6 +689,23 @@ async function listarDrive(token,pastaId){
   return d.files||[];
 }
 
+async function renomearNoDrive(token,driveId,livro){
+  const ext=livro.tipo==='pdf'?'.pdf':'.epub';
+  const nome=livro.titulo.replace(/[\\/:*?"<>|]/g,'')+ext;
+  await fetch(`https://www.googleapis.com/drive/v3/files/${driveId}`,{
+    method:'PATCH',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({name:nome})
+  });
+}
+async function lixeiraNoDrive(token,driveId){
+  await fetch(`https://www.googleapis.com/drive/v3/files/${driveId}`,{
+    method:'PATCH',
+    headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({trashed:true})
+  });
+}
+
 async function sincronizar(interativo){
   if(!driveConfigurado()){
     if(interativo)avisar('Falta configurar o Drive — veja COMO-CONECTAR-DRIVE');
@@ -676,15 +718,24 @@ async function sincronizar(interativo){
     const token=await pedirToken(interativo);
     const pastaId=await acharOuCriarPasta(token);
 
-    // 1) envia pro Drive os livros locais que ainda não subiram
+    // 0) manda pra lixeira do Drive o que foi apagado neste aparelho
+    const lixo=(await getMeta('lixo'))||[];
+    if(lixo.length){
+      for(const id of lixo){ try{await lixeiraNoDrive(token,id)}catch(e){} }
+      await setMeta('lixo',[]);
+    }
+
+    // 1) envia/atualiza os livros locais
     const locais=await listar();
     for(const l of locais){
       if(!l.driveId){
         if(interativo)avisar(`Enviando "${l.titulo}"…`);
         try{
           const id=await subirParaDrive(token,pastaId,l);
-          if(id){l.driveId=id;await salvar(l)}
-        }catch(e){/* segue os outros */}
+          if(id){l.driveId=id;delete l.driveDirty;await salvar(l)}
+        }catch(e){}
+      }else if(l.driveDirty){
+        try{await renomearNoDrive(token,l.driveId,l);delete l.driveDirty;await salvar(l)}catch(e){}
       }
     }
 
@@ -709,9 +760,10 @@ async function sincronizar(interativo){
         livro.capaTentada=true;
         await salvar(livro);
         baixados++;
-      }catch(e){/* segue */}
+      }catch(e){}
     }
 
+    await setMeta('ultimaSync',Date.now());
     await render();
     if(interativo)avisar('Estante sincronizada'+(baixados?` · ${baixados} novo(s)`:''));
   }catch(e){

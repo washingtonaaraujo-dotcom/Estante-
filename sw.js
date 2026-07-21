@@ -1,4 +1,4 @@
-const CACHE = 'estante-v5';
+const CACHE = 'estante-v6';
 const ESTATICOS = [
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
