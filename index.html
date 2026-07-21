@@ -11,15 +11,13 @@
 <meta name="theme-color" content="#16211C">
 <style>
 :root{
-  --fundo:#16211C;        /* verde biblioteca profundo */
+  --fundo:#16211C;
   --fundo-2:#1D2B25;
-  --papel:#EFE7D5;        /* creme de página */
+  --papel:#EFE7D5;
   --papel-fraco:#B8AE97;
-  --latao:#C9973F;        /* latão / dourado */
+  --latao:#C9973F;
   --madeira:#5C4330;
   --madeira-clara:#7A5A3E;
-  --terracota:#A6543C;
-  --petroleo:#3E6B62;
   --perigo:#C15B4A;
   --raio:14px;
   --fonte-display:"Fraunces",Georgia,"Times New Roman",serif;
@@ -34,20 +32,11 @@ body{
   min-height:100vh;
   padding-bottom:110px;
 }
-header{
-  padding:26px 20px 10px;
-  max-width:760px;margin:0 auto;
-}
-.marca{display:flex;align-items:baseline;gap:10px}
-h1{
-  font-family:var(--fonte-display);
-  font-weight:600;font-size:1.9rem;letter-spacing:.01em;
-}
+header{padding:26px 20px 10px;max-width:760px;margin:0 auto}
+h1{font-family:var(--fonte-display);font-weight:600;font-size:1.9rem;letter-spacing:.01em}
 h1 em{font-style:italic;color:var(--latao)}
 .sub{color:var(--papel-fraco);font-size:.85rem;margin-top:4px}
-.busca{
-  margin:18px auto 0;max-width:760px;padding:0 20px;
-}
+.busca{margin:18px auto 0;max-width:760px;padding:0 20px}
 .busca input{
   width:100%;padding:12px 16px;border-radius:var(--raio);
   border:1px solid #2C3B34;background:var(--fundo-2);
@@ -56,16 +45,11 @@ h1 em{font-style:italic;color:var(--latao)}
 .busca input:focus{border-color:var(--latao)}
 .busca input::placeholder{color:var(--papel-fraco)}
 main{max-width:760px;margin:0 auto;padding:8px 20px}
-.info-espaco{
-  color:var(--papel-fraco);font-size:.78rem;margin:10px 2px 0;
-}
+.info-espaco{color:var(--papel-fraco);font-size:.78rem;margin:10px 2px 0}
 /* ---------- ESTANTE ---------- */
-.prateleira{
-  margin-top:26px;
-  position:relative;
-}
+.prateleira{margin-top:26px;position:relative}
 .livros{
-  display:flex;align-items:flex-end;gap:6px;
+  display:flex;align-items:flex-end;gap:10px;
   flex-wrap:wrap;
   padding:0 8px 0;
   min-height:60px;
@@ -76,6 +60,19 @@ main{max-width:760px;margin:0 auto;padding:8px 20px}
   box-shadow:0 6px 14px rgba(0,0,0,.45);
   margin-top:-2px;
 }
+/* livro com capa */
+.capaLivro{
+  border:none;cursor:pointer;padding:0;
+  width:94px;border-radius:3px 6px 6px 3px;overflow:hidden;
+  background:#26332C;
+  box-shadow:2px 3px 10px rgba(0,0,0,.5), inset 3px 0 4px rgba(255,255,255,.08);
+  position:relative;
+  transition:transform .15s ease;
+}
+.capaLivro img{display:block;width:100%;height:134px;object-fit:cover}
+.capaLivro:active{transform:translateY(-6px)}
+@media(hover:hover){.capaLivro:hover{transform:translateY(-8px)}}
+/* lombada (sem capa) */
 .lombada{
   border:none;cursor:pointer;
   border-radius:4px 4px 2px 2px;
@@ -103,10 +100,7 @@ main{max-width:760px;margin:0 auto;padding:8px 20px}
   font-size:.5rem;font-weight:700;letter-spacing:.08em;
   color:rgba(255,250,238,.75);
 }
-.vazio{
-  text-align:center;color:var(--papel-fraco);
-  padding:44px 16px;font-size:.95rem;line-height:1.6;
-}
+.vazio{text-align:center;color:var(--papel-fraco);padding:44px 16px;font-size:.95rem;line-height:1.6}
 .vazio strong{color:var(--latao)}
 /* ---------- BOTÃO ADICIONAR ---------- */
 .add{
@@ -130,14 +124,17 @@ main{max-width:760px;margin:0 auto;padding:8px 20px}
   padding:24px 22px calc(24px + env(safe-area-inset-bottom));
   border-top:2px solid var(--latao);
   animation:sobe .2s ease;
+  max-height:88vh;overflow-y:auto;
 }
 @keyframes sobe{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
-.painel h2{
-  font-family:var(--fonte-display);font-weight:600;
-  font-size:1.3rem;line-height:1.3;margin-bottom:4px;
+.painelTopo{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+.painelTopo img{
+  width:72px;height:102px;object-fit:cover;border-radius:3px 5px 5px 3px;
+  box-shadow:2px 3px 8px rgba(0,0,0,.5);flex-shrink:0;
 }
+.painel h2{font-family:var(--fonte-display);font-weight:600;font-size:1.3rem;line-height:1.3;margin-bottom:4px}
 .painel .autor{color:var(--papel-fraco);font-size:.9rem;margin-bottom:6px}
-.painel .meta{color:var(--papel-fraco);font-size:.78rem;margin-bottom:18px}
+.painel .meta{color:var(--papel-fraco);font-size:.78rem}
 .acoes{display:grid;gap:10px}
 .botao{
   padding:13px 16px;border-radius:var(--raio);border:none;cursor:pointer;
@@ -155,10 +152,7 @@ main{max-width:760px;margin:0 auto;padding:8px 20px}
   color:var(--papel);font-size:1rem;outline:none;
 }
 .campo input:focus{border-color:var(--latao)}
-.fechar{
-  margin-top:14px;background:none;border:none;color:var(--papel-fraco);
-  width:100%;padding:10px;font-size:.9rem;cursor:pointer;
-}
+.fechar{margin-top:14px;background:none;border:none;color:var(--papel-fraco);width:100%;padding:10px;font-size:.9rem;cursor:pointer}
 .aviso{
   position:fixed;top:16px;left:50%;transform:translateX(-50%);
   background:var(--latao);color:#221A0C;font-weight:600;
@@ -169,15 +163,13 @@ main{max-width:760px;margin:0 auto;padding:8px 20px}
 }
 .aviso.mostra{opacity:1}
 input[type=file]{display:none}
-@media(prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important}
-}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="marca"><h1>Minha <em>Estante</em></h1></div>
+  <h1>Minha <em>Estante</em></h1>
   <p class="sub">Seus livros digitais, guardados no seu aparelho</p>
 </header>
 
@@ -203,9 +195,14 @@ input[type=file]{display:none}
 <!-- painel do livro -->
 <div class="veu" id="veuLivro">
   <div class="painel" role="dialog" aria-modal="true">
-    <h2 id="pTitulo"></h2>
-    <p class="autor" id="pAutor"></p>
-    <p class="meta" id="pMeta"></p>
+    <div class="painelTopo">
+      <img id="pCapa" alt="" hidden>
+      <div>
+        <h2 id="pTitulo"></h2>
+        <p class="autor" id="pAutor"></p>
+        <p class="meta" id="pMeta"></p>
+      </div>
+    </div>
     <div class="acoes">
       <button class="botao principal" id="btnAbrir">📖 Abrir</button>
       <button class="botao" id="btnBaixar">⬇️ Baixar / compartilhar</button>
@@ -237,7 +234,14 @@ input[type=file]{display:none}
 
 <div class="aviso" id="aviso"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
+/* ================= pdf.js ================= */
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 /* ================= IndexedDB ================= */
 const DB_NOME='minha-estante', STORE='livros';
 let db;
@@ -262,14 +266,93 @@ const apagar=id=>new Promise((res,rej)=>{const r=tx('readwrite').delete(id);r.on
 const $=s=>document.querySelector(s);
 const cores=['#A6543C','#3E6B62','#8A6D2F','#5B4A78','#7A3B4E','#42633B','#3E5A78','#8C5A32'];
 function corDe(t){let h=0;for(const c of t)h=(h*31+c.charCodeAt(0))>>>0;return cores[h%cores.length]}
-function alturaDe(t){let h=0;for(const c of t)h=(h*17+c.charCodeAt(0))>>>0;return 150+(h%70)} /* 150–220px */
+function alturaDe(t){let h=0;for(const c of t)h=(h*17+c.charCodeAt(0))>>>0;return 150+(h%70)}
 function fmtTam(b){return b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB'}
 function avisar(msg){const a=$('#aviso');a.textContent=msg;a.classList.add('mostra');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('mostra'),2600)}
 function tituloDoArquivo(nome){return nome.replace(/\.(pdf|epub)$/i,'').replace(/[_-]+/g,' ').trim()}
 
+/* ================= CAPAS ================= */
+async function gerarCapa(livro){
+  try{
+    if(livro.tipo==='pdf'){
+      if(!window.pdfjsLib)return null;
+      const data=await livro.blob.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data}).promise;
+      const pagina=await pdf.getPage(1);
+      const vp=pagina.getViewport({scale:1});
+      const escala=260/vp.width;
+      const v2=pagina.getViewport({scale:escala});
+      const c=document.createElement('canvas');
+      c.width=v2.width;c.height=v2.height;
+      const ctx=c.getContext('2d');
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+      await pagina.render({canvasContext:ctx,viewport:v2}).promise;
+      pdf.destroy();
+      return await new Promise(r=>c.toBlob(r,'image/jpeg',.82));
+    }else{
+      if(!window.JSZip)return null;
+      const zip=await JSZip.loadAsync(livro.blob);
+      const contFile=zip.file('META-INF/container.xml');
+      if(!contFile)return null;
+      const cont=await contFile.async('string');
+      const m=cont.match(/full-path="([^"]+)"/);
+      if(!m)return null;
+      const opfPath=m[1];
+      const opfFile=zip.file(opfPath);
+      if(!opfFile)return null;
+      const opf=await opfFile.async('string');
+      const dir=opfPath.includes('/')?opfPath.slice(0,opfPath.lastIndexOf('/')+1):'';
+      let href=null;
+      const metaCover=opf.match(/<meta[^>]*name=["']cover["'][^>]*content=["']([^"']+)["']/)||opf.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']cover["']/);
+      if(metaCover){
+        const id=metaCover[1];
+        const re1=new RegExp('<item[^>]*id=["\']'+id+'["\'][^>]*href=["\']([^"\']+)["\']');
+        const re2=new RegExp('<item[^>]*href=["\']([^"\']+)["\'][^>]*id=["\']'+id+'["\']');
+        const it=opf.match(re1)||opf.match(re2);
+        if(it)href=it[1];
+      }
+      if(!href){
+        const it=opf.match(/<item[^>]*properties=["'][^"']*cover-image[^"']*["'][^>]*href=["']([^"']+)["']/)
+              ||opf.match(/<item[^>]*href=["']([^"']+)["'][^>]*properties=["'][^"']*cover-image[^"']*["']/)
+              ||opf.match(/<item[^>]*href=["']([^"']+\.(?:jpe?g|png|webp))["'][^>]*id=["'][^"']*cover[^"']*["']/i)
+              ||opf.match(/<item[^>]*id=["'][^"']*cover[^"']*["'][^>]*href=["']([^"']+\.(?:jpe?g|png|webp))["']/i);
+        if(it)href=it[1];
+      }
+      if(!href){
+        /* último recurso: primeira imagem do zip com "cover" no nome */
+        const nomes=Object.keys(zip.files).filter(n=>/cover.*\.(jpe?g|png|webp)$/i.test(n));
+        if(nomes.length)href=null,zipDireto=nomes[0];
+        var zipDireto=nomes.length?nomes[0]:null;
+        if(zipDireto){const f=zip.file(zipDireto);if(f)return await f.async('blob')}
+        return null;
+      }
+      const caminho=decodeURIComponent(dir+href).replace(/^\.\//,'');
+      const f=zip.file(caminho)||zip.file(decodeURIComponent(href));
+      if(!f)return null;
+      return await f.async('blob');
+    }
+  }catch(e){return null}
+}
+
+async function gerarCapasFaltantes(){
+  const todos=await listar();
+  let mudou=false;
+  for(const l of todos){
+    if(!l.capa&&!l.capaTentada){
+      const capa=await gerarCapa(l);
+      l.capa=capa||null;
+      l.capaTentada=true;
+      await salvar(l);
+      mudou=true;
+    }
+  }
+  if(mudou)await render();
+}
+
 /* ================= render ================= */
-let cache=[], selecionado=null;
+let cache=[], selecionado=null, urlsCapas=[];
 async function render(){
+  urlsCapas.forEach(u=>URL.revokeObjectURL(u));urlsCapas=[];
   cache=await listar();
   const filtro=$('#busca').value.trim().toLowerCase();
   const lista=cache.filter(l=>!filtro||l.titulo.toLowerCase().includes(filtro)||(l.autor||'').toLowerCase().includes(filtro))
@@ -277,13 +360,24 @@ async function render(){
   const el=$('#livros');el.innerHTML='';
   $('#vazio').hidden=cache.length>0;
   for(const l of lista){
-    const b=document.createElement('button');
-    b.className='lombada';
-    b.style.background=`linear-gradient(180deg,${corDe(l.titulo)} 0%,${corDe(l.titulo)} 85%,rgba(0,0,0,.25))`;
-    b.style.height=alturaDe(l.titulo)+'px';
-    b.setAttribute('aria-label',l.titulo);
-    b.innerHTML=`<span></span><i class="tipo">${l.tipo.toUpperCase()}</i>`;
-    b.querySelector('span').textContent=l.titulo;
+    let b;
+    if(l.capa){
+      b=document.createElement('button');
+      b.className='capaLivro';
+      const img=document.createElement('img');
+      const u=URL.createObjectURL(l.capa);urlsCapas.push(u);
+      img.src=u;img.alt=l.titulo;
+      b.appendChild(img);
+      b.setAttribute('aria-label',l.titulo);
+    }else{
+      b=document.createElement('button');
+      b.className='lombada';
+      b.style.background=`linear-gradient(180deg,${corDe(l.titulo)} 0%,${corDe(l.titulo)} 85%,rgba(0,0,0,.25))`;
+      b.style.height=alturaDe(l.titulo)+'px';
+      b.setAttribute('aria-label',l.titulo);
+      b.innerHTML=`<span></span><i class="tipo">${l.tipo.toUpperCase()}</i>`;
+      b.querySelector('span').textContent=l.titulo;
+    }
     b.onclick=()=>abrirPainel(l);
     el.appendChild(b);
   }
@@ -292,39 +386,53 @@ async function render(){
 async function mostrarEspaco(){
   try{
     const est=await navigator.storage.estimate();
-    const usado=fmtTam(est.usage||0), total=fmtTam(est.quota||0);
-    $('#espaco').textContent=`${cache.length} livro(s) · ${usado} usados de ${total} disponíveis`;
-  }catch{ $('#espaco').textContent=`${cache.length} livro(s)` }
+    $('#espaco').textContent=`${cache.length} livro(s) · ${fmtTam(est.usage||0)} usados de ${fmtTam(est.quota||0)} disponíveis`;
+  }catch{$('#espaco').textContent=`${cache.length} livro(s)`}
 }
 
 /* ================= adicionar ================= */
 $('#btnAdd').onclick=()=>$('#arquivo').click();
 $('#arquivo').onchange=async e=>{
   const arquivos=[...e.target.files];
+  let ok=0;
   for(const f of arquivos){
     const ehPdf=/pdf$/i.test(f.name)||f.type==='application/pdf';
     const ehEpub=/epub$/i.test(f.name)||f.type==='application/epub+zip';
     if(!ehPdf&&!ehEpub){avisar(`"${f.name}" não é PDF nem EPUB`);continue}
-    await salvar({
+    const livro={
       titulo:tituloDoArquivo(f.name),
       autor:'',
       tipo:ehPdf?'pdf':'epub',
       tamanho:f.size,
       data:Date.now(),
-      blob:f
-    });
+      blob:f,
+      capa:null,
+      capaTentada:false
+    };
+    avisar(`Gerando capa de "${livro.titulo}"…`);
+    livro.capa=await gerarCapa(livro);
+    livro.capaTentada=true;
+    await salvar(livro);
+    ok++;
   }
   e.target.value='';
   await render();
-  if(arquivos.length)avisar(arquivos.length>1?`${arquivos.length} livros guardados na estante`:'Livro guardado na estante');
+  if(ok)avisar(ok>1?`${ok} livros guardados na estante`:'Livro guardado na estante');
 };
 
 /* ================= painel ================= */
+let urlCapaPainel=null;
 function abrirPainel(l){
   selecionado=l;
   $('#pTitulo').textContent=l.titulo;
   $('#pAutor').textContent=l.autor?`por ${l.autor}`:'Autor não informado';
   $('#pMeta').textContent=`${l.tipo.toUpperCase()} · ${fmtTam(l.tamanho)} · adicionado em ${new Date(l.data).toLocaleDateString('pt-BR')}`;
+  const img=$('#pCapa');
+  if(urlCapaPainel){URL.revokeObjectURL(urlCapaPainel);urlCapaPainel=null}
+  if(l.capa){
+    urlCapaPainel=URL.createObjectURL(l.capa);
+    img.src=urlCapaPainel;img.hidden=false;
+  }else{img.hidden=true}
   $('#veuLivro').classList.add('aberto');
 }
 document.querySelectorAll('[data-fecha]').forEach(b=>b.onclick=e=>e.target.closest('.veu').classList.remove('aberto'));
@@ -382,12 +490,9 @@ $('#busca').oninput=()=>render();
 (async()=>{
   await abrirDB();
   await render();
-  if(navigator.storage&&navigator.storage.persist){
-    navigator.storage.persist(); /* pede pro navegador não apagar os livros */
-  }
-  if('serviceWorker'in navigator){
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  }
+  gerarCapasFaltantes(); /* gera capa dos livros antigos em segundo plano */
+  if(navigator.storage&&navigator.storage.persist){navigator.storage.persist()}
+  if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 })();
 </script>
 </body>

@@ -1,8 +1,17 @@
-const CACHE = 'estante-v1';
-const ARQUIVOS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'estante-v2';
+const ARQUIVOS = [
+  './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQUIVOS)));
+  e.waitUntil(
+    caches.open(CACHE).then(c =>
+      Promise.all(ARQUIVOS.map(a => c.add(a).catch(() => {})))
+    )
+  );
   self.skipWaiting();
 });
 
