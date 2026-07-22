@@ -615,7 +615,7 @@ async function abrirLeitor(l){
     // ordem de leitura (spine)
     const spine=[]; const reRef=/<itemref\b[^>]*idref="([^"]+)"/gi; let mr;
     while(mr=reRef.exec(opf)){ if(itens[mr[1]]) spine.push(itens[mr[1]].href) }
-    capitulos = spine.length?spine:Object.values(itens).filter(x=>/html/i.test(x.media)).map(x=>x.href);
+    capitulos = spine.length?spine:Object.values(itens).filter(x=>/(x?html|xml)/i.test(x.media||'')||/\.x?html?$/i.test(x.href)).map(x=>x.href);     if(!capitulos.length){ capitulos = Object.keys(zipEpub.files).filter(n=>/\.x?html?$/i.test(n) && !/nav\.x?html?$/i.test(n)).sort().map(n=> dirOpf && n.startsWith(dirOpf) ? n.slice(dirOpf.length) : n); }
     capAtual = l.capEpub||0;
     if(capAtual>=capitulos.length)capAtual=0;
     aplicarTemaLeitor();
