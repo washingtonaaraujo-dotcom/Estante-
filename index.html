@@ -240,6 +240,10 @@ input[type=file]{display:none}
   background:var(--fundo-2);color:var(--papel);flex-shrink:0;
 }
 .leitorProgresso{font-size:.82rem;color:var(--papel-fraco);min-width:44px;text-align:center}
+.epubTexto{max-width:680px;margin:0 auto;padding:26px 22px 60px;line-height:1.7;font-family:Georgia,"Times New Roman",serif}
+.epubTexto img{max-width:100%;height:auto;display:block;margin:16px auto}
+.epubTexto h1,.epubTexto h2,.epubTexto h3{line-height:1.3;margin:1em 0 .5em}
+.epubTexto p{margin:0 0 1em}
 </style>
 </head>
 <body>
@@ -358,7 +362,6 @@ input[type=file]{display:none}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.88/dist/epub.min.js"></script>
 <script src="https://apis.google.com/js/api.js" onload="window._gapiPronto=true"></script>
 <script src="https://accounts.google.com/gsi/client" onload="window._gisPronto=true"></script>
 <script>
@@ -571,76 +574,118 @@ async function mostrarEspaco(){
   $('#espaco').textContent=base+quando;
 }
 
-/* ================= LEITOR DE EPUB ================= */
-let ebook=null, rendition=null, leitorLivro=null, fonteLeitor=100;
+/* ================= LEITOR DE EPUB (próprio, sem iframe) ================= */
+let leitorLivro=null, fonteLeitor=110, capitulos=[], capAtual=0, zipEpub=null, dirOpf='';
+function limparHTMLcap(html){
+  // extrai só o miolo do <body>, remove scripts
+  let m=html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  let corpo=m?m[1]:html;
+  corpo=corpo.replace(/<script[\s\S]*?<\/script>/gi,'');
+  corpo=corpo.replace(/ on\w+="[^"]*"/gi,'');
+  corpo=corpo.replace(/<link[^>]*>/gi,'');
+  return corpo;
+}
 async function abrirLeitor(l){
   if(l.tipo!=='epub'){return}
-  // espera a biblioteca carregar (até ~4s)
-  if(!window.ePub){
-    avisar('Preparando o leitor…');
-    for(let i=0;i<40 && !window.ePub;i++){await new Promise(r=>setTimeout(r,100))}
-  }
-  if(!window.ePub){avisar('Leitor não carregou — verifique a conexão e tente de novo');return}
+  if(!window.JSZip){avisar('Aguarde carregar e tente de novo');return}
   leitorLivro=l;
+  fonteLeitor=l.fonteLeitor||110;
   $('#veuLivro').classList.remove('aberto');
   $('#leitorTitulo').textContent=l.titulo;
   $('#leitor').hidden=false;
-  $('#leitorArea').innerHTML='';
+  const area=$('#leitorArea');
+  area.innerHTML='<p style="padding:24px;color:#8a7a5c">Abrindo livro…</p>';
   try{
-    const buf=await l.blob.arrayBuffer();
-    ebook=ePub(buf);
-    rendition=ebook.renderTo('leitorArea',{
-      flow:'scrolled-doc',
-      manager:'continuous',
-      width:'100%',
-      height:'100%'
-    });
-    fonteLeitor=l.fonteLeitor||100;
+    zipEpub=await JSZip.loadAsync(l.blob);
+    // acha o .opf
+    const cont=await zipEpub.file('META-INF/container.xml').async('string');
+    const opfPath=cont.match(/full-path="([^"]+)"/)[1];
+    dirOpf=opfPath.includes('/')?opfPath.slice(0,opfPath.lastIndexOf('/')+1):'';
+    const opf=await zipEpub.file(opfPath).async('string');
+    // manifesto: id -> href
+    const itens={};
+    const reItem=/<item\b[^>]*>/gi; let mi;
+    while(mi=reItem.exec(opf)){
+      const tag=mi[0];
+      const id=(tag.match(/id="([^"]+)"/)||[])[1];
+      const href=(tag.match(/href="([^"]+)"/)||[])[1];
+      const media=(tag.match(/media-type="([^"]+)"/)||[])[1]||'';
+      if(id&&href)itens[id]={href,media};
+    }
+    // ordem de leitura (spine)
+    const spine=[]; const reRef=/<itemref\b[^>]*idref="([^"]+)"/gi; let mr;
+    while(mr=reRef.exec(opf)){ if(itens[mr[1]]) spine.push(itens[mr[1]].href) }
+    capitulos = spine.length?spine:Object.values(itens).filter(x=>/html/i.test(x.media)).map(x=>x.href);
+    capAtual = l.capEpub||0;
+    if(capAtual>=capitulos.length)capAtual=0;
     aplicarTemaLeitor();
-    await rendition.display(l.cfi||undefined);
-    await ebook.ready;
-    // reforça o tamanho depois de montar (evita tela em branco)
-    setTimeout(()=>{try{rendition.resize()}catch(e){}},300);
-    try{await ebook.locations.generate(1200)}catch(e){}
-    rendition.on('relocated',async loc=>{
-      leitorLivro.cfi=loc.start.cfi;
-      let pct=0;
-      try{pct=ebook.locations.percentageFromCfi(loc.start.cfi)||0}catch(e){}
-      leitorLivro.progresso=pct;
-      if(pct>0.02 && leitorLivro.status!=='lido')leitorLivro.status='lendo';
-      if(pct>=0.985)leitorLivro.status='lido';
-      $('#leitorProgresso').textContent=Math.round(pct*100)+'%';
-      await salvar(leitorLivro);
-    });
+    await mostrarCapitulo(capAtual);
   }catch(e){
-    avisar('Não consegui abrir este EPUB');
-    fecharLeitor();
+    area.innerHTML='<p style="padding:24px;color:#b23">Não consegui ler este EPUB. Tente "Baixar" e abrir noutro app.</p>';
   }
 }
+async function mostrarCapitulo(idx){
+  if(idx<0)idx=0; if(idx>=capitulos.length)idx=capitulos.length-1;
+  capAtual=idx;
+  const area=$('#leitorArea');
+  const caminho=decodeURIComponent(dirOpf+capitulos[idx]).replace(/^\.\//,'').split('#')[0];
+  let arq=zipEpub.file(caminho)||zipEpub.file(decodeURIComponent(capitulos[idx]));
+  if(!arq){area.innerHTML='<p style="padding:24px">Capítulo não encontrado.</p>';return}
+  let html=await arq.async('string');
+  let corpo=limparHTMLcap(html);
+  // resolve imagens internas -> blob URL
+  const dirCap=caminho.includes('/')?caminho.slice(0,caminho.lastIndexOf('/')+1):'';
+  const imgs=[...corpo.matchAll(/(src|xlink:href)="([^"]+\.(?:jpe?g|png|gif|webp|svg))"/gi)];
+  for(const im of imgs){
+    try{
+      let p=decodeURIComponent(dirCap+im[2]).replace(/^\.\//,'');
+      // normaliza ../ 
+      while(p.includes('../')){p=p.replace(/[^\/]+\/\.\.\//,'')}
+      const fimg=zipEpub.file(p);
+      if(fimg){
+        const b=await fimg.async('blob');
+        const u=URL.createObjectURL(b);
+        corpo=corpo.split(im[2]).join(u);
+      }
+    }catch(e){}
+  }
+  area.innerHTML='<div class="epubTexto">'+corpo+'</div>';
+  area.scrollTop=0;
+  atualizarProgresso();
+  // salva posição
+  leitorLivro.capEpub=capAtual;
+  leitorLivro.progresso=capitulos.length?((capAtual+1)/capitulos.length):0;
+  if(leitorLivro.progresso>0.02 && leitorLivro.status!=='lido')leitorLivro.status='lendo';
+  if(capAtual>=capitulos.length-1)leitorLivro.status='lido';
+  await salvar(leitorLivro);
+}
+function atualizarProgresso(){
+  const pct=capitulos.length?Math.round(((capAtual+1)/capitulos.length)*100):0;
+  $('#leitorProgresso').textContent=pct+'%';
+}
 function aplicarTemaLeitor(){
-  if(!rendition)return;
   const escuro=$('#leitor').classList.contains('escuro');
-  rendition.themes.fontSize(fonteLeitor+'%');
-  rendition.themes.override('color', escuro?'#E8E0CF':'#20160B');
-  rendition.themes.override('background', escuro?'#14100C':'#F3ECD9');
+  const area=$('#leitorArea');
+  area.style.fontSize=fonteLeitor+'%';
+  area.style.color=escuro?'#E8E0CF':'#20160B';
+  $('#leitor').style.background=escuro?'#14100C':'#F3ECD9';
 }
 function fecharLeitor(){
-  try{if(rendition)rendition.destroy()}catch(e){}
-  try{if(ebook)ebook.destroy()}catch(e){}
-  rendition=null;ebook=null;
+  zipEpub=null;capitulos=[];
+  $('#leitorArea').innerHTML='';
   $('#leitor').hidden=true;
   render();
 }
 $('#leitorFechar').onclick=fecharLeitor;
-$('#leitorProximo').onclick=()=>rendition&&rendition.next();
-$('#leitorAnterior').onclick=()=>rendition&&rendition.prev();
-$('#leitorMais').onclick=async()=>{fonteLeitor=Math.min(200,fonteLeitor+10);if(leitorLivro){leitorLivro.fonteLeitor=fonteLeitor;await salvar(leitorLivro)}aplicarTemaLeitor()};
-$('#leitorMenos').onclick=async()=>{fonteLeitor=Math.max(60,fonteLeitor-10);if(leitorLivro){leitorLivro.fonteLeitor=fonteLeitor;await salvar(leitorLivro)}aplicarTemaLeitor()};
+$('#leitorProximo').onclick=()=>mostrarCapitulo(capAtual+1);
+$('#leitorAnterior').onclick=()=>mostrarCapitulo(capAtual-1);
+$('#leitorMais').onclick=async()=>{fonteLeitor=Math.min(220,fonteLeitor+10);if(leitorLivro){leitorLivro.fonteLeitor=fonteLeitor;await salvar(leitorLivro)}aplicarTemaLeitor()};
+$('#leitorMenos').onclick=async()=>{fonteLeitor=Math.max(70,fonteLeitor-10);if(leitorLivro){leitorLivro.fonteLeitor=fonteLeitor;await salvar(leitorLivro)}aplicarTemaLeitor()};
 $('#leitorTema').onclick=()=>{$('#leitor').classList.toggle('escuro');aplicarTemaLeitor()};
 document.addEventListener('keydown',e=>{
   if($('#leitor').hidden)return;
-  if(e.key==='ArrowRight')rendition&&rendition.next();
-  if(e.key==='ArrowLeft')rendition&&rendition.prev();
+  if(e.key==='ArrowRight')mostrarCapitulo(capAtual+1);
+  if(e.key==='ArrowLeft')mostrarCapitulo(capAtual-1);
   if(e.key==='Escape')fecharLeitor();
 });
 
