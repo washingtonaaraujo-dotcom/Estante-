@@ -780,7 +780,7 @@ document.querySelectorAll('.veu').forEach(v=>v.onclick=e=>{if(e.target===v)v.cla
 $('#btnAbrir').onclick=()=>{
   if(!selecionado)return;
   if(selecionado.tipo==='epub'){
-    abrirLeitor(selecionado);
+    avisar('EPUB: use "Baixar / compartilhar" e abra no seu leitor');
   }else{
     const url=URL.createObjectURL(selecionado.blob);
     window.open(url,'_blank');
