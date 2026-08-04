@@ -177,9 +177,9 @@ input[type=file]{display:none}
 /* ---------- cabeçalho ---------- */
 .cabecalho{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .btnBackup{
-  flex-shrink:0;margin-top:6px;
+  flex-shrink:0;
   background:transparent;border:1px solid #2C3B34;color:var(--papel-fraco);
-  border-radius:10px;padding:8px 12px;font-size:.8rem;cursor:pointer;
+  border-radius:10px;padding:8px 12px;font-size:.8rem;cursor:pointer;white-space:nowrap;
 }
 .btnBackup:active{background:#2C3B34}
 /* ---------- controles (ordenar + prateleiras) ---------- */
@@ -220,7 +220,8 @@ input[type=file]{display:none}
 }
 .stBtn.ativo{background:var(--latao);color:#221A0C;border-color:var(--latao);font-weight:600}
 /* ---------- LEITOR EPUB ---------- */
-.leitor{position:fixed;inset:0;z-index:60;background:var(--papel);display:flex;flex-direction:column} .leitor[hidden]{display:none}
+.leitor{position:fixed;inset:0;z-index:60;background:var(--papel);display:flex;flex-direction:column}
+.leitor[hidden]{display:none}
 .leitor.escuro{background:#14100C}
 .leitorBarra{
   display:flex;align-items:center;gap:10px;padding:10px 14px;
@@ -254,7 +255,10 @@ input[type=file]{display:none}
       <h1>Minha <em>Estante</em></h1>
       <p class="sub">Seus livros digitais, guardados no seu aparelho</p>
     </div>
-    <button class="btnBackup" id="btnBackup" title="Baixar backup de tudo">⬇ Backup</button>
+    <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;margin-top:6px">
+      <button class="btnBackup" id="btnBackup" title="Baixar backup de tudo">⬇ Backup</button>
+      <button class="btnBackup" id="btnDedup" title="Remover livros repetidos">✦ Duplicados</button>
+    </div>
   </div>
 </header>
 
@@ -602,20 +606,30 @@ async function abrirLeitor(l){
     const opfPath=cont.match(/full-path="([^"]+)"/)[1];
     dirOpf=opfPath.includes('/')?opfPath.slice(0,opfPath.lastIndexOf('/')+1):'';
     const opf=await zipEpub.file(opfPath).async('string');
-    // manifesto: id -> href
+    // manifesto: id -> href (aceita aspas simples/duplas e qualquer ordem de atributos)
     const itens={};
-    const reItem=/<item\b[^>]*>/gi; let mi;
+    const reItem=/<item\b[^>]*\/?>/gi; let mi;
     while(mi=reItem.exec(opf)){
       const tag=mi[0];
-      const id=(tag.match(/id="([^"]+)"/)||[])[1];
-      const href=(tag.match(/href="([^"]+)"/)||[])[1];
-      const media=(tag.match(/media-type="([^"]+)"/)||[])[1]||'';
+      const id=(tag.match(/\bid\s*=\s*["']([^"']+)["']/)||[])[1];
+      const href=(tag.match(/\bhref\s*=\s*["']([^"']+)["']/)||[])[1];
+      const media=(tag.match(/media-type\s*=\s*["']([^"']+)["']/)||[])[1]||'';
       if(id&&href)itens[id]={href,media};
     }
     // ordem de leitura (spine)
-    const spine=[]; const reRef=/<itemref\b[^>]*idref="([^"]+)"/gi; let mr;
+    const spine=[]; const reRef=/<itemref\b[^>]*\bidref\s*=\s*["']([^"']+)["']/gi; let mr;
     while(mr=reRef.exec(opf)){ if(itens[mr[1]]) spine.push(itens[mr[1]].href) }
-    capitulos = spine.length?spine:Object.values(itens).filter(x=>/(x?html|xml)/i.test(x.media||'')||/\.x?html?$/i.test(x.href)).map(x=>x.href);     if(!capitulos.length){ capitulos = Object.keys(zipEpub.files).filter(n=>/\.x?html?$/i.test(n) && !/nav\.x?html?$/i.test(n)).sort().map(n=> dirOpf && n.startsWith(dirOpf) ? n.slice(dirOpf.length) : n); }
+    // 1a opção: spine. 2a: itens html do manifesto. 3a (fallback): qualquer html dentro do zip
+    capitulos = spine.length ? spine
+              : Object.values(itens).filter(x=>/(x?html|xml)/i.test(x.media||'')||/\.x?html?$/i.test(x.href)).map(x=>x.href);
+    if(!capitulos.length){
+      capitulos = Object.keys(zipEpub.files)
+        .filter(n=>/\.x?html?$/i.test(n) && !/nav\.x?html?$/i.test(n))
+        .sort()
+        .map(n=> dirOpf && n.startsWith(dirOpf) ? n.slice(dirOpf.length) : n);
+      // se usamos caminho absoluto do zip, zera dirOpf pra não duplicar
+      if(capitulos.length){ /* mostrarCapitulo lida com caminho relativo a dirOpf */ }
+    }
     capAtual = l.capEpub||0;
     if(capAtual>=capitulos.length)capAtual=0;
     aplicarTemaLeitor();
@@ -628,8 +642,20 @@ async function mostrarCapitulo(idx){
   if(idx<0)idx=0; if(idx>=capitulos.length)idx=capitulos.length-1;
   capAtual=idx;
   const area=$('#leitorArea');
-  const caminho=decodeURIComponent(dirOpf+capitulos[idx]).replace(/^\.\//,'').split('#')[0];
-  let arq=zipEpub.file(caminho)||zipEpub.file(decodeURIComponent(capitulos[idx]));
+  const bruto=capitulos[idx].split('#')[0];
+  const tent=[
+    dirOpf+bruto,
+    bruto,
+    decodeURIComponent(dirOpf+bruto),
+    decodeURIComponent(bruto)
+  ].map(x=>x.replace(/^\.\//,''));
+  let arq=null;
+  for(const c of tent){ arq=zipEpub.file(c); if(arq)break; }
+  if(!arq){ // última tentativa: procura pelo nome do arquivo em qualquer pasta
+    const base=bruto.split('/').pop();
+    const achou=Object.keys(zipEpub.files).find(n=>n.split('/').pop()===base);
+    if(achou)arq=zipEpub.file(achou);
+  }
   if(!arq){area.innerHTML='<p style="padding:24px">Capítulo não encontrado.</p>';return}
   let html=await arq.async('string');
   let corpo=limparHTMLcap(html);
@@ -688,6 +714,34 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft')mostrarCapitulo(capAtual-1);
   if(e.key==='Escape')fecharLeitor();
 });
+
+/* ================= REMOVER DUPLICADOS ================= */
+$('#btnDedup').onclick=async()=>{
+  const livros=await listar();
+  const vistos=new Map();
+  const paraApagar=[];
+  // ordena: quem tem driveId e quem foi adicionado primeiro fica; o resto é duplicata
+  livros.sort((a,b)=>(a.driveId?0:1)-(b.driveId?0:1) || (a.data||0)-(b.data||0));
+  for(const l of livros){
+    const chave=(l.titulo||'').trim().toLowerCase()+'|'+l.tipo;
+    if(vistos.has(chave)){
+      paraApagar.push(l);
+    }else{
+      vistos.set(chave,l);
+    }
+  }
+  if(!paraApagar.length){avisar('Nenhum livro duplicado encontrado');return}
+  if(!confirm(`Encontrei ${paraApagar.length} livro(s) repetido(s). Apagar as cópias extras (mantendo uma de cada)?`))return;
+  const lixo=(await getMeta('lixo'))||[];
+  for(const l of paraApagar){
+    if(l.driveId && !lixo.includes(l.driveId))lixo.push(l.driveId);
+    await apagar(l.id);
+  }
+  await setMeta('lixo',lixo);
+  await render();
+  avisar(paraApagar.length>1?`${paraApagar.length} duplicados removidos`:'1 duplicado removido');
+  sincronizar(false);
+};
 
 /* ================= BACKUP ================= */
 $('#btnBackup').onclick=async()=>{
@@ -780,7 +834,7 @@ document.querySelectorAll('.veu').forEach(v=>v.onclick=e=>{if(e.target===v)v.cla
 $('#btnAbrir').onclick=()=>{
   if(!selecionado)return;
   if(selecionado.tipo==='epub'){
-    avisar('EPUB: use "Baixar / compartilhar" e abra no seu leitor');
+    abrirLeitor(selecionado);
   }else{
     const url=URL.createObjectURL(selecionado.blob);
     window.open(url,'_blank');
