@@ -245,6 +245,19 @@ input[type=file]{display:none}
 .epubTexto img{max-width:100%;height:auto;display:block;margin:16px auto}
 .epubTexto h1,.epubTexto h2,.epubTexto h3{line-height:1.3;margin:1em 0 .5em}
 .epubTexto p{margin:0 0 1em}
+/* ---------- Continuar lendo ---------- */
+.secaoLendo{margin:8px auto 4px;max-width:760px}
+.tituloSecao{font-family:var(--fonte-display);font-size:1.15rem;font-weight:600;color:var(--latao);margin:0 2px 10px}
+.fileiraLendo{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.fileiraLendo::-webkit-scrollbar{height:6px}
+.fileiraLendo::-webkit-scrollbar-thumb{background:#2C3B34;border-radius:3px}
+.cardLendo{flex-shrink:0;width:110px;cursor:pointer;border:none;background:none;padding:0;text-align:left}
+.cardLendo .capaWrap{position:relative;width:110px;height:156px;border-radius:4px 7px 7px 4px;overflow:hidden;background:#26332C;box-shadow:2px 3px 10px rgba(0,0,0,.5)}
+.cardLendo img{width:100%;height:100%;object-fit:cover;display:block}
+.cardLendo .semCapa{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:8px;color:rgba(255,250,238,.9);font-family:var(--fonte-display);font-size:.8rem;text-align:center}
+.cardLendo .barraProg2{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(0,0,0,.4)}
+.cardLendo .barraProg2 i{display:block;height:100%;background:var(--latao)}
+.cardLendo .tit{font-size:.72rem;color:var(--papel-fraco);margin-top:6px;line-height:1.25;max-height:2.5em;overflow:hidden}
 </style>
 </head>
 <body>
@@ -278,6 +291,10 @@ input[type=file]{display:none}
 </div>
 
 <main>
+  <section class="secaoLendo" id="secaoLendo" hidden>
+    <h2 class="tituloSecao">Continuar lendo</h2>
+    <div class="fileiraLendo" id="fileiraLendo"></div>
+  </section>
   <div class="prateleira">
     <div class="livros" id="livros"></div>
     <div class="tabua"></div>
@@ -558,7 +575,31 @@ async function render(){
     b.onclick=()=>abrirPainel(l);
     el.appendChild(b);
   }
+  renderContinuarLendo();
   mostrarEspaco();
+}
+function renderContinuarLendo(){
+  const sec=$('#secaoLendo'), fila=$('#fileiraLendo');
+  const lendo=cache.filter(l=>l.status==='lendo')
+                   .sort((a,b)=>(b.ultimaLeitura||b.data||0)-(a.ultimaLeitura||a.data||0));
+  if(!lendo.length){sec.hidden=true;fila.innerHTML='';return}
+  sec.hidden=false;
+  fila.innerHTML='';
+  for(const l of lendo){
+    const card=document.createElement('button');
+    card.className='cardLendo';
+    const pct=l.progresso?Math.round(l.progresso*100):0;
+    let capaHTML;
+    if(l.capa){
+      const u=URL.createObjectURL(l.capa);urlsCapas.push(u);
+      capaHTML=`<img src="${u}" alt="${(l.titulo||'').replace(/"/g,'&quot;')}">`;
+    }else{
+      capaHTML=`<div class="semCapa">${(l.titulo||'').replace(/</g,'&lt;')}</div>`;
+    }
+    card.innerHTML=`<div class="capaWrap">${capaHTML}<div class="barraProg2"><i style="width:${pct}%"></i></div></div><div class="tit">${(l.titulo||'').replace(/</g,'&lt;')}</div>`;
+    card.onclick=()=>abrirPainel(l);
+    fila.appendChild(card);
+  }
 }
 $('#ordenar').onchange=()=>render();
 async function mostrarEspaco(){
@@ -682,6 +723,7 @@ async function mostrarCapitulo(idx){
   leitorLivro.capEpub=capAtual;
   leitorLivro.progresso=capitulos.length?((capAtual+1)/capitulos.length):0;
   if(leitorLivro.progresso>0.02 && leitorLivro.status!=='lido')leitorLivro.status='lendo';
+  leitorLivro.ultimaLeitura=Date.now();
   if(capAtual>=capitulos.length-1)leitorLivro.status='lido';
   await salvar(leitorLivro);
 }
@@ -839,7 +881,7 @@ $('#btnAbrir').onclick=()=>{
     const url=URL.createObjectURL(selecionado.blob);
     window.open(url,'_blank');
     setTimeout(()=>URL.revokeObjectURL(url),60000);
-    if(selecionado.status!=='lido'){selecionado.status='lendo';salvar(selecionado).then(render)}
+    selecionado.ultimaLeitura=Date.now();if(selecionado.status!=='lido')selecionado.status='lendo';salvar(selecionado).then(render);
   }
 };
 $('#btnBaixar').onclick=async()=>{
